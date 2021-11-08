@@ -3,8 +3,6 @@ from flask.helpers import make_response
 from config import secretKey, okapiURL, tenant, externalPass
 import login
 import requests
-import random
-import string
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField, EmailField
