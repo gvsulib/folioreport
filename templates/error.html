@@ -1,0 +1,34 @@
+{% extends 'bootstrap/base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+	<style>
+		body { background: #e8f1f9; }
+	</style>
+{% endblock %}
+
+
+{% block title %}
+Checkout Report Error
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
+
+      <h1 class="pt-5 pb-2">There was a problem!</h1>
+
+      <p class="lead">The Checkout Report Request form could not be rendered because: {{ message }}
+
+        <P>Copy this message into an email and send to Kyle.</P>
+      </p>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

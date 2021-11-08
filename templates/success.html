@@ -1,0 +1,33 @@
+{% extends 'bootstrap/base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+	<style>
+		body { background: #e8f1f9; }
+	</style>
+{% endblock %}
+
+
+{% block title %}
+Checkout Report Request Success
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
+
+      <h1 class="pt-5 pb-2">Report Requested</h1>
+
+      <p class="lead">Reports normally appear in your email within 20-30 minutes, but can take longer.
+        These emails will appear to be spam to the campus mail system, so if you can't find it, <b>check your spam folder</b> and make sure it is not there before you report it.</b></p>
+
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
