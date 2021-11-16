@@ -6,8 +6,8 @@ import requests
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField, EmailField
-from wtforms import SubmitField, SelectField, PasswordField
-from wtforms.validators import DataRequired, Email
+from wtforms import SubmitField, SelectMultipleField, PasswordField
+from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateReport
 # Flask-WTF requires an encryption key - the string can be anything
@@ -16,6 +16,12 @@ token = login.login()
 error = ""
 locationPath = "/locations?limit=2000&query=cql.allRecords%3D1%20sortby%20name"
 headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
+#selectmultipleField will auto-fail validation and refuse to submit form
+#without this
+class NoValidationSelectMultipleField(SelectMultipleField):
+    def pre_validate(self, form):
+      pass
+      """per_validation is disabled"""
 
 r = requests.get(okapiURL + locationPath, headers=headers)
 if r.status_code != 200:
@@ -35,15 +41,15 @@ Bootstrap(app)
 app.config['SECRET_KEY'] = secretKey
 
 class authenticationForm(FlaskForm):
-  password = PasswordField('Enter Password: ', validators=[DataRequired()])
+  password = PasswordField('Enter Password: ', validators=[InputRequired()])
   submit = SubmitField('Submit')
 
 class ReportForm(FlaskForm):
 
-  email = EmailField('Email the report to: ', validators=[DataRequired(), Email()])
-  location = SelectField('Location:', choices=selectValues, validators=[DataRequired()])
-  startDate = DateField('Start Date:', validators=[DataRequired()], format='%Y-%m-%d')
-  endDate = DateField('End Date:', validators=[DataRequired()],  format='%Y-%m-%d')
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
+  startDate = DateField('Start Date:', validators=[InputRequired()], format='%Y-%m-%d')
+  endDate = DateField('End Date:', validators=[InputRequired()],  format='%Y-%m-%d')
   submit = SubmitField('Submit')
 
 class myThread (Thread):
@@ -87,7 +93,6 @@ def report():
     return render_template('error.html', message=error)
 
   if reportForm.validate_on_submit():
-    
     endDate = reportForm.endDate.data
     startDate = reportForm.startDate.data 
     email = reportForm.email.data

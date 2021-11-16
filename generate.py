@@ -7,8 +7,16 @@ from config import tenant
 from config import emailFrom
 import collections
 
-def getItemRecords(email, offset, okapiURL, itemPath, limitItem, location, headers):
-  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(effectiveLocationId=="' + location + '") sortby title'
+def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers):
+  locationQuery = 'effectiveLocationId==('
+  
+  for index, location in enumerate(locationList):
+    if index == 0:
+      locationQuery = 'effectiveLocationId==("' + location + '"'
+    else:
+      locationQuery = locationQuery + ' or "' + location + '"'
+  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=' + locationQuery + ') sortby title'
+  
   r = requests.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -18,11 +26,16 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, location, heade
   else:
     return r.json()
 
-def generateReport(startDate, endDate, locationId, emailAddr): 
+def generateReport(startDate, endDate, locationList, emailAddr): 
   disallowed_characters = "''[]"
 
-  for character in disallowed_characters:
-	  locationId = locationId.replace(character, "")
+  for index, location in enumerate(locationList):
+    for character in disallowed_characters:
+	    location = location.replace(character, "")
+    locationList[index] = location
+    
+
+  print("locations" + str(locationList))
   token = login.login()
   if token == 0:
       error = "Unable to log in to folio."
@@ -71,7 +84,7 @@ def generateReport(startDate, endDate, locationId, emailAddr):
 
   print("Attempting to get item data from inventory")
 
-  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationId, headers)
+  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers)
 
   if itemResults == -1:
     sys.exit()
@@ -87,7 +100,7 @@ def generateReport(startDate, endDate, locationId, emailAddr):
     offset = 100
     while offset < totalRecords:
       print("Attempting to fetch next 100 records from position " +str(offset))
-      itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationId, headers)
+      itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers)
       if itemResults == -1:
         sys.exit()
       itemRecords.extend(itemResults["items"])
@@ -104,7 +117,7 @@ def generateReport(startDate, endDate, locationId, emailAddr):
     x.append(entry["id"])
     x.append(entry["effectiveLocation"]["name"])
     if "barcode" in entry:
-      x.append(entry["callNumber"])
+      x.append('"' + entry["callNumber"] + '"')
     else:
       x.append("")
     x.append('"' + entry["title"] + '"')
