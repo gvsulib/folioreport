@@ -115,7 +115,7 @@ def generateReport(startDate, endDate, locationList, emailAddr):
   for entry in itemRecords:
     x = []
     x.append(entry["id"])
-    x.append(entry["effectiveLocation"]["name"])
+    x.append('"' + entry["effectiveLocation"]["name"] + '"')
     if "barcode" in entry:
       x.append('"' + entry["callNumber"] + '"')
     else:
