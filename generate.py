@@ -97,19 +97,22 @@ def generateReport(startDate, endDate, locationId, emailAddr):
     print("All Item records for location fetched")
 
   print("Building csv file")
-  itemData = "Item id, Title, Barcode, Created Date, Location, Number of Checkouts\n"
+  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, Number of Checkouts\n"
 
   for entry in itemRecords:
     x = []
     x.append(entry["id"])
+    x.append(entry["effectiveLocation"]["name"])
+    if "barcode" in entry:
+      x.append(entry["callNumber"])
+    else:
+      x.append("")
     x.append('"' + entry["title"] + '"')
     if "barcode" in entry:
       x.append(entry["barcode"])
     else:
       x.append("")
     x.append(entry["metadata"]["createdDate"])
-    x.append(entry["effectiveLocation"]["name"])
-
     if entry["id"] in count:
       x.append(str(count[entry["id"]]))
     else:
