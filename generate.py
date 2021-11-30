@@ -8,7 +8,7 @@ from config import emailFrom
 import collections
 
 def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers):
-  locationQuery = 'effectiveLocationId==('
+  locationQuery = ""
   
   for index, location in enumerate(locationList):
     if index == 0:
@@ -110,9 +110,10 @@ def generateReport(startDate, endDate, locationList, emailAddr):
     print("All Item records for location fetched")
 
   print("Building csv file")
-  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, Number of Checkouts\n"
+  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, Number of Checkouts, Total Checkouts\n"
 
   for entry in itemRecords:
+    totalCheckout = "none"
     x = []
     x.append(entry["id"])
     x.append('"' + entry["effectiveLocation"]["name"] + '"')
@@ -130,6 +131,16 @@ def generateReport(startDate, endDate, locationList, emailAddr):
       x.append(str(count[entry["id"]]))
     else:
       x.append("0")
+    if "notes" in entry:
+      notes = entry["notes"]
+      for note in notes:
+        if note["itemNoteTypeId"] == "6d8bb43a-7455-4044-836e-f43740a4c38d":
+          totalCheckout = note["note"]
+
+    x.append(totalCheckout)
+
+
+
 
     itemData = itemData + ",".join(x) + "\n"
 
