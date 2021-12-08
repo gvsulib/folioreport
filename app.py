@@ -3,16 +3,19 @@ from flask.helpers import make_response
 from config import secretKey, okapiURL, tenant, externalPass
 import login
 import requests
+import sys
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField, EmailField
-from wtforms import SubmitField, SelectMultipleField, PasswordField
+from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateReport
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
 token = login.login()
+if token == 0:
+  sys.exit()
 error = ""
 locationPath = "/locations?limit=2000&query=cql.allRecords%3D1%20sortby%20name"
 headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
@@ -26,6 +29,7 @@ class NoValidationSelectMultipleField(SelectMultipleField):
 r = requests.get(okapiURL + locationPath, headers=headers)
 if r.status_code != 200:
   error = "Cannot Get location code data from folio: " + str(r.status_code) + r.text
+  sys.exit()
 
 temp = r.json()
 locations = temp["locations"]
@@ -50,18 +54,20 @@ class ReportForm(FlaskForm):
   location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
   startDate = DateField('Start Date:', validators=[InputRequired()], format='%Y-%m-%d')
   endDate = DateField('End Date:', validators=[InputRequired()],  format='%Y-%m-%d')
+  includeSuppressed = BooleanField('Include suppressed records')
   submit = SubmitField('Submit')
 
 class myThread (Thread):
-   def __init__(self, startDate, endDate, locationId, emailAddr):
+   def __init__(self, startDate, endDate, locationId, emailAddr, includeSuppressed):
       Thread.__init__(self)
       self.startDate = startDate
       self.endDate = endDate
       self.locationId = locationId
       self.emailAddr = emailAddr
+      self.includeSuppressed = includeSuppressed
    def run(self):
       print("Starting report")
-      generateReport(self.startDate, self.endDate, self.locationId, self.emailAddr)
+      generateReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed)
       print("finished, shutting down")
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -97,13 +103,14 @@ def report():
     startDate = reportForm.startDate.data 
     email = reportForm.email.data
     location = reportForm.location.data
+    includeSuppressed = reportForm.includeSuppressed.data
     if endDate < startDate:
       message = "End date cannot be before start date." 
       return render_template('index.html', form=reportForm, message=message)
     else:
       startDate = startDate.strftime('%Y-%m-%d')
       endDate = endDate.strftime('%Y-%m-%d')
-      thread1 = myThread(startDate, endDate, location, email)
+      thread1 = myThread(startDate, endDate, location, email, includeSuppressed)
       thread1.start()
       return render_template('success.html')
   return render_template('index.html', form=reportForm, message=message)

@@ -24,9 +24,41 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, h
     sendEmail.sendEmail(email, emailFrom, error, "Error Generating checkout report")
     return -1
   else:
-    return r.json()
+    json = r.json()
+    return json["items"]
 
-def generateReport(startDate, endDate, locationList, emailAddr): 
+def generateEntry(entry, count):
+  totalCheckout = "none"
+  x = []
+  x.append(entry["id"])
+  x.append('"' + entry["effectiveLocation"]["name"] + '"')
+  if "callNumber" in entry:
+    x.append('"' + entry["callNumber"] + '"')
+  else:
+    x.append("")
+  x.append('"' + entry["title"] + '"')
+  if "barcode" in entry:
+    x.append(entry["barcode"])
+  else:
+    x.append("")
+  x.append(entry["metadata"]["createdDate"])
+  if entry["id"] in count:
+    x.append(str(count[entry["id"]]))
+  else:
+    x.append("0")
+  if "notes" in entry:
+    notes = entry["notes"]
+    for note in notes:
+      if note["itemNoteTypeId"] == "6d8bb43a-7455-4044-836e-f43740a4c38d":
+        totalCheckout = note["note"]
+
+  x.append(totalCheckout)
+  return ",".join(x) + "\n"
+
+
+
+
+def generateReport(startDate, endDate, locationList, emailAddr, includeSuppressed): 
   disallowed_characters = "''[]"
 
   for index, location in enumerate(locationList):
@@ -34,7 +66,7 @@ def generateReport(startDate, endDate, locationList, emailAddr):
 	    location = location.replace(character, "")
     locationList[index] = location
     
-
+  print("includesuppress: " + str(includeSuppressed))
   print("locations" + str(locationList))
   token = login.login()
   if token == 0:
@@ -89,60 +121,18 @@ def generateReport(startDate, endDate, locationList, emailAddr):
   if itemResults == -1:
     sys.exit()
 
-  itemRecords = itemResults["items"]
-
-  totalRecords = itemResults["totalRecords"]
-
-  print(str(totalRecords) + " records in inventory for given location")
-
-  if totalRecords > 100:
-    print("Location has more than 100 records, attempting to page through")
-    offset = 100
-    while offset < totalRecords:
-      print("Attempting to fetch next 100 records from position " +str(offset))
-      itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers)
-      if itemResults == -1:
-        sys.exit()
-      itemRecords.extend(itemResults["items"])
-      offset += 100
-    print("All item records fetched!")
-  else:
-    print("All Item records for location fetched")
-
-  print("Building csv file")
   itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, Number of Checkouts, Total Checkouts\n"
 
-  for entry in itemRecords:
-    totalCheckout = "none"
-    x = []
-    x.append(entry["id"])
-    x.append('"' + entry["effectiveLocation"]["name"] + '"')
-    if "callNumber" in entry:
-      x.append('"' + entry["callNumber"] + '"')
-    else:
-      x.append("")
-    x.append('"' + entry["title"] + '"')
-    if "barcode" in entry:
-      x.append(entry["barcode"])
-    else:
-      x.append("")
-    x.append(entry["metadata"]["createdDate"])
-    if entry["id"] in count:
-      x.append(str(count[entry["id"]]))
-    else:
-      x.append("0")
-    if "notes" in entry:
-      notes = entry["notes"]
-      for note in notes:
-        if note["itemNoteTypeId"] == "6d8bb43a-7455-4044-836e-f43740a4c38d":
-          totalCheckout = note["note"]
-
-    x.append(totalCheckout)
+  while itemResults:
+    for item in itemResults:
+      if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
+        print("logging checkout data for item " + item["id"])
+        itemData = itemData + generateEntry(item, count)
+    offset += 100
+    print("Attempting to get next 100 records from offset " + str(offset))
+    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers)
 
 
-
-
-    itemData = itemData + ",".join(x) + "\n"
 
   print("CSV data ready")
 
