@@ -11,6 +11,7 @@ from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanFiel
 from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateReport
+from generate import generateReservesUse
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
 token = login.login()
@@ -48,7 +49,7 @@ class authenticationForm(FlaskForm):
   password = PasswordField('Enter Password: ', validators=[InputRequired()])
   submit = SubmitField('Submit')
 
-class ReportForm(FlaskForm):
+class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
@@ -56,6 +57,21 @@ class ReportForm(FlaskForm):
   endDate = DateField('End Date:', validators=[InputRequired()],  format='%Y-%m-%d')
   includeSuppressed = BooleanField('Include suppressed records')
   submit = SubmitField('Submit')
+  reservesReport = SubmitField('Reserves Report')
+
+class  ReservesReportForm(FlaskForm):
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  submit = SubmitField('Generate Reserves Usage Report')
+
+class reservesThread (Thread):
+  def __init__(self, emailAddr):
+      Thread.__init__(self)
+      self.emailAddr = emailAddr
+  def run (self):
+    print("Starting reserves report")
+    generateReservesUse(self.emailAddr)
+    print("Finished, Shutting Down")
+
 
 class myThread (Thread):
    def __init__(self, startDate, endDate, locationId, emailAddr, includeSuppressed):
@@ -72,47 +88,68 @@ class myThread (Thread):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+  formName = "Login"
   authForm = authenticationForm()
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn != None and loggedIn == "true":
-    return redirect("/report", code=302)
+    return redirect("/choose", code=302)
   if authForm.validate_on_submit():
     passwd = authForm.password.data
     if passwd != externalPass.strip():
       message = "Invalid Password"
-      return render_template('index.html', form=authForm, message=message)
+      return render_template('index.html', form=authForm, message=message,formName=formName)
     else:
-      resp = make_response(redirect("/report", code=302))
+      resp = make_response(redirect("/choose", code=302))
       resp.set_cookie('loggedIn', 'true')
       return resp
-  return render_template('index.html', form=authForm, message="")
+  return render_template('index.html', form=authForm, message="", formName=formName)
 
-@app.route('/report', methods=['GET', 'POST'])
-def report():
+@app.route('/reservereport', methods=['GET', 'POST'])
+def reservereport():
+  formName = "Reserves use report"
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn == None or loggedIn != "true":
     return redirect("/login", code=302)
-  reportForm = ReportForm()
+  reservesReportForm = ReservesReportForm()
+  if reservesReportForm.validate_on_submit():
+    email = reservesReportForm.email.data
+    thread1 = reservesThread(email)
+    thread1.start()
+    return render_template('success.html')
+  return render_template('index.html', form=reservesReportForm, message="", formName=formName)
+  
+@app.route('/choose', methods=['GET'])
+def choose():
+  loggedIn = request.cookies.get('loggedIn')
+  if loggedIn == None or loggedIn != "true":
+    return redirect("/login", code=302)
+  return render_template('choose.html')
+
+@app.route('/usereport', methods=['GET', 'POST'])
+def usereport():
+
+  useReportForm = UseReportForm()
+  formName = "Checkout Report Form"
   message = ""
   
   if error != "":
     return render_template('error.html', message=error)
 
-  if reportForm.validate_on_submit():
-    endDate = reportForm.endDate.data
-    startDate = reportForm.startDate.data 
-    email = reportForm.email.data
-    location = reportForm.location.data
-    includeSuppressed = reportForm.includeSuppressed.data
+  if useReportForm.validate_on_submit():
+    endDate = useReportForm.endDate.data
+    startDate = useReportForm.startDate.data 
+    email = useReportForm.email.data
+    location = useReportForm.location.data
+    includeSuppressed = useReportForm.includeSuppressed.data
     if endDate < startDate:
       message = "End date cannot be before start date." 
-      return render_template('index.html', form=reportForm, message=message)
+      return render_template('index.html', form=useReportForm, message=message)
     else:
       startDate = startDate.strftime('%Y-%m-%d')
       endDate = endDate.strftime('%Y-%m-%d')
       thread1 = myThread(startDate, endDate, location, email, includeSuppressed)
       thread1.start()
       return render_template('success.html')
-  return render_template('index.html', form=reportForm, message=message)
+  return render_template('index.html', form=useReportForm, message=message, formName=formName)
 
 

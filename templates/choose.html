@@ -10,7 +10,7 @@
 
 
 {% block title %}
-{{formName}}
+Choose a Report to Run
 {% endblock %}
 
 
@@ -20,11 +20,14 @@
   <div class="row">
     <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
 
-      <h1 class="pt-5 pb-2">{{formName}}</h1>
-      <p class="pt-5"><strong>{{ message }}</strong></p>
+      <h1 class="pt-5 pb-2">Choose a report to run</h1>
+      
       <p class="lead"></p>
 
-      {{ wtf.quick_form(form) }}
+      <a href="/reservereport">Reserve use Report</a>
+      <P>
+        <a href="/usereport">Checkout report</a>
+      </P>
 
       
 
