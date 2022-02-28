@@ -117,7 +117,7 @@ def generateReservesUse(emailAddr):
     reserveItems.append(itemEntry)
 
   print("Reserve items retrieved")
-  print("reserve items: " +str(reserveItems))
+  
   print("extracting start and end dates")
   startDate = result[0]["startDate"]
 
@@ -156,7 +156,6 @@ def generateReservesUse(emailAddr):
     else:
       x.append("0")
     itemData = itemData + ",".join(x) + "\n"
-  print(itemData)
 
   print("CSV data ready")
   sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "Checkout Report", itemData)
