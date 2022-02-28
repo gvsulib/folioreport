@@ -110,7 +110,7 @@ def generateReservesUse(emailAddr):
       }
     for course in courses:
       if course["courseListingId"] == entry["courseListingId"]:
-        itemEntry = itemEntry | course
+        itemEntry.update(course)
         del itemEntry["courseListingId"]
         break
 
