@@ -57,7 +57,6 @@ class UseReportForm(FlaskForm):
   endDate = DateField('End Date:', validators=[InputRequired()],  format='%Y-%m-%d')
   includeSuppressed = BooleanField('Include suppressed records')
   submit = SubmitField('Submit')
-  reservesReport = SubmitField('Reserves Report')
 
 class  ReservesReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])

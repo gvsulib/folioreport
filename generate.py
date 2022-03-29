@@ -130,7 +130,7 @@ def generateReservesUse(emailAddr):
   print("Attempting to get data from circ logs for the time period: " + startDate + " to " + endDate)
 
   logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out%22%29%29%20sortby%20date%2Fsort.descending"
-  
+
   #get circ log data for date ranges
   result = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers)
   print("Data from circ logs retrieved")
@@ -235,8 +235,8 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
 
   offset = 0
   
-  logQueryString = "?limit=" + limitLog + "&offset=0&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out%22%29%29%20sortby%20date%2Fsort.descending"
-
+  logQueryString = "?limit=" + limitLog + "&offset=0&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
+  print("query string: " + okapiURL + logPath + logQueryString)
   headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
 
   print("attempting to get circ log data")
