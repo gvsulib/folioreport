@@ -162,16 +162,25 @@ def generateReservesUse(emailAddr):
   print('Reserves Report sent')
   print("Done, closing down")
 
-def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers):
-  locationQuery = ""
+def constructLocationQuery(locationList):
+  if len(locationList) == 0:
+    return 'effectiveLocationId==("*")'
+  else:
+    locationQuery = ""
   
-  for index, location in enumerate(locationList):
-    if index == 0:
-      locationQuery = 'effectiveLocationId==("' + location + '"'
-    else:
-      locationQuery = locationQuery + ' or "' + location + '"'
-  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=' + locationQuery + ') sortby title'
-  
+    for index, location in enumerate(locationList):
+      if index == 0:
+        locationQuery = 'effectiveLocationId==("' + location + '"'
+      else:
+        locationQuery = locationQuery + ' or "' + location + '"'
+    return locationQuery
+
+
+def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem):
+  locationQuery = constructLocationQuery(locationList)
+  callNumberQuery = 'effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
+  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + ') sortby title'
+  print("query string: " + itemQueryString)
   r = requests.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -211,7 +220,7 @@ def generateEntry(entry, count):
   return ",".join(x) + "\n"
 
 
-def generateReport(startDate, endDate, locationList, emailAddr, includeSuppressed): 
+def generateReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
   disallowed_characters = "''[]"
 
   for index, location in enumerate(locationList):
@@ -267,7 +276,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
 
   print("Attempting to get item data from inventory")
 
-  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers)
+  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem)
 
   if itemResults == -1:
     sys.exit()
@@ -281,7 +290,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
         itemData = itemData + generateEntry(item, count)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
-    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers)
+    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem)
 
 
 

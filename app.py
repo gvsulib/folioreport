@@ -74,16 +74,17 @@ class reservesThread (Thread):
 
 
 class myThread (Thread):
-   def __init__(self, startDate, endDate, locationId, emailAddr, includeSuppressed):
+   def __init__(self, startDate, endDate, locationId, emailAddr, includeSuppressed, callNumberStem):
       Thread.__init__(self)
       self.startDate = startDate
       self.endDate = endDate
       self.locationId = locationId
       self.emailAddr = emailAddr
       self.includeSuppressed = includeSuppressed
+      self.callNumberStem = callNumberStem
    def run(self):
       print("Starting report")
-      generateReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed)
+      generateReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
       print("finished, shutting down")
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -152,7 +153,7 @@ def usereport():
     else:
       startDate = startDate.strftime('%Y-%m-%d')
       endDate = endDate.strftime('%Y-%m-%d')
-      thread1 = myThread(startDate, endDate, location, email, includeSuppressed)
+      thread1 = myThread(startDate, endDate, location, email, includeSuppressed, callNumberStem)
       thread1.start()
       return render_template('success.html')
   return render_template('index.html', form=useReportForm, message=message, formName=formName)
