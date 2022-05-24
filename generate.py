@@ -180,7 +180,6 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, h
   locationQuery = constructLocationQuery(locationList)
   callNumberQuery = 'effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
   itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + ') sortby title'
-  print("query string: " + itemQueryString)
   r = requests.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
