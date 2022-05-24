@@ -7,7 +7,7 @@ import sys
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField, EmailField
-from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanField
+from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanField, TextField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateReport
@@ -52,7 +52,8 @@ class authenticationForm(FlaskForm):
 class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
-  location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
+  location = NoValidationSelectMultipleField('Location:', choices=selectValues)
+  callNumberStem = TextField('Call Number Stem')
   startDate = DateField('Start Date:', validators=[InputRequired()], format='%Y-%m-%d')
   endDate = DateField('End Date:', validators=[InputRequired()],  format='%Y-%m-%d')
   includeSuppressed = BooleanField('Include suppressed records')
@@ -140,9 +141,14 @@ def usereport():
     email = useReportForm.email.data
     location = useReportForm.location.data
     includeSuppressed = useReportForm.includeSuppressed.data
+    callNumberStem = useReportForm.callNumberStem.data
+
     if endDate < startDate:
       message = "End date cannot be before start date." 
       return render_template('index.html', form=useReportForm, message=message)
+    elif callNumberStem == "" and len(location) == 0:
+      message = "You must select one or more locations, input a call number stem, or both"
+      return render_template('index.html', form=useReportForm, message=message, formName=formName)
     else:
       startDate = startDate.strftime('%Y-%m-%d')
       endDate = endDate.strftime('%Y-%m-%d')
