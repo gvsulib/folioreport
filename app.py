@@ -12,6 +12,7 @@ from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateReport
 from generate import generateReservesUse
+from generate import generateInventoryReport
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
 token = login.login()
@@ -49,6 +50,14 @@ class authenticationForm(FlaskForm):
   password = PasswordField('Enter Password: ', validators=[InputRequired()])
   submit = SubmitField('Submit')
 
+class InventoryForm(FlaskForm):
+
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
+  callNumberStem = TextField('Call Number Stem', validators=[InputRequired()])
+  cutoffDate = DateField('Cut Off Date:', validators=[InputRequired()], format='%Y-%m-%d')
+  submit = SubmitField('Submit')
+
 class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
@@ -72,6 +81,17 @@ class reservesThread (Thread):
     generateReservesUse(self.emailAddr)
     print("Finished, Shutting Down")
 
+class inventoryThread (Thread):
+   def __init__(self, cutoffDate, locationId, emailAddr, callNumberStem):
+      Thread.__init__(self)
+      self.cutoffDate = cutoffDate
+      self.locationId = locationId
+      self.emailAddr = emailAddr
+      self.callNumberStem = callNumberStem
+   def run(self):
+      print("Starting inventory report")
+      generateInventoryReport(self.cutoffDate, self.locationId, self.emailAddr, self.callNumberStem)
+      print("finished, shutting down")
 
 class myThread (Thread):
    def __init__(self, startDate, endDate, locationId, emailAddr, includeSuppressed, callNumberStem):
@@ -125,6 +145,27 @@ def choose():
   if loggedIn == None or loggedIn != "true":
     return redirect("/login", code=302)
   return render_template('choose.html')
+
+@app.route('/inventoryreport', methods=['GET', 'POST'])
+def inventoryreport():
+  inventoryReportForm = InventoryForm()
+  formName = 'Inventory Report Form'
+  message = ""
+
+  if error != "":
+    return render_template('error.html', message=error)
+
+  if inventoryReportForm.validate_on_submit():
+    cutoffDate = inventoryReportForm.cutoffDate.data
+    email = inventoryReportForm.email.data
+    location = inventoryReportForm.location.data
+    callNumberStem = inventoryReportForm.callNumberStem.data
+    cutoffDate = cutoffDate.strftime('%Y-%m-%d')
+    thread1 = inventoryThread(cutoffDate, location, email, callNumberStem)
+    thread1.start()
+    
+    return render_template('success.html')
+  return render_template('index.html', form=inventoryReportForm, message=message, formName=formName)
 
 @app.route('/usereport', methods=['GET', 'POST'])
 def usereport():

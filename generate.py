@@ -177,11 +177,19 @@ def constructLocationQuery(locationList):
     return locationQuery + ')'
 
 
-def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem):
+def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, addStatus, cutoffDate):
   locationQuery = constructLocationQuery(locationList)
+  cutoffQuery = ''
+  statusQuery = ''
+  if addStatus:
+    statusQuery = ' and (status.name==("Available") or status.name==("in transit"))'
+
+  if cutoffDate is not None:
+    cutoffQuery = ' and status.date<=("' + cutoffDate + 'T00:00:00.000")'
+
   callNumberQuery = 'effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
-  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + ') sortby title'
-  
+  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
+  print("query string:" + itemQueryString)
   r = requests.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -191,6 +199,27 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, h
   else:
     json = r.json()
     return json["items"]
+
+def generateInventoryEntry(entry):
+  x = []
+  x.append(entry["id"])
+  x.append('"' + entry["effectiveLocation"]["name"] + '"')
+  if "callNumber" in entry:
+    x.append('"' + entry["callNumber"] + '"')
+  else:
+    x.append("")
+  x.append('"' + entry["title"] + '"')
+  if "barcode" in entry:
+    x.append(entry["barcode"])
+  else:
+    x.append("")
+  x.append(entry["status"]["name"])
+  if "date" in entry["status"]:
+    x.append('"' + entry["status"]["date"] + '"')
+  else:
+    x.append("")
+  return ",".join(x) + "\n"
+
 
 def generateEntry(entry, count):
   totalCheckout = "none"
@@ -219,6 +248,54 @@ def generateEntry(entry, count):
 
   x.append(totalCheckout)
   return ",".join(x) + "\n"
+
+
+def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem):
+  disallowed_characters = "''[]"
+
+  for index, location in enumerate(locationList):
+    for character in disallowed_characters:
+      location = location.replace(character, "")
+    locationList[index] = location
+
+  token = login.login()
+  if token == 0:
+      error = "Unable to log in to folio."
+      print(error)
+      sendEmail.sendEmail(emailAddr, emailFrom, error, "Error Generating checkout report")
+      sys.exit()
+
+  itemPath = "/inventory/items"
+
+  limit = "100"
+
+  offset = 0
+
+  headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
+
+  print("attempting to get inventory item data")
+
+  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate)
+  
+  if itemResults == -1:
+    sys.exit()
+
+  itemData = "Item id, Location, Call Number, Title, Barcode, Status, Status Update Date\n"
+
+  while itemResults:
+    for item in itemResults:
+      if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True)):
+        print("logging data for item " + item["id"])
+        itemData = itemData + generateInventoryEntry(item)
+    offset += 100
+    print("Attempting to get next 100 records from offset " + str(offset))
+    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate)
+  
+  print("CSV data ready")
+
+  sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "Inventory Report", itemData)
+  print('Report sent')
+  print("Done, closing down")
 
 
 def generateReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
@@ -250,7 +327,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
   headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
 
   print("attempting to get circ log data")
-  
+  print("query string: " + okapiURL + logPath + logQueryString)
   r = requests.get(okapiURL + logPath + logQueryString, headers=headers)
 
   if r.status_code != 200:
@@ -277,7 +354,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
 
   print("Attempting to get item data from inventory")
 
-  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem)
+  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None)
 
   if itemResults == -1:
     sys.exit()
@@ -291,7 +368,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
         itemData = itemData + generateEntry(item, count)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
-    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem)
+    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None)
 
 
 
