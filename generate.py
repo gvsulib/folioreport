@@ -261,7 +261,7 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
   if token == 0:
       error = "Unable to log in to folio."
       print(error)
-      sendEmail.sendEmail(emailAddr, emailFrom, error, "Error Generating checkout report")
+      sendEmail.sendEmail(emailAddr, emailFrom, error, "Error Generating inventory report")
       sys.exit()
 
   itemPath = "/inventory/items"
@@ -280,12 +280,14 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
     sys.exit()
 
   itemData = "Item id, Location, Call Number, Title, Barcode, Status, Status Update Date\n"
-
+  itemIds = []
   while itemResults:
     for item in itemResults:
-      if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True)):
-        print("logging data for item " + item["id"])
-        itemData = itemData + generateInventoryEntry(item)
+      if item["id"] not in itemIds:
+        itemIds.append(item["id"])
+        if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True)):
+          print("logging data for item " + item["id"])
+          itemData = itemData + generateInventoryEntry(item)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate)
@@ -317,7 +319,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
 
   limitLog = "100000"
 
-  limitItem = "100"
+  limitItem = "99"
 
   offset = 0
   
@@ -326,7 +328,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
   headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
 
   print("attempting to get circ log data")
-  print("query string: " + okapiURL + logPath + logQueryString)
+
   r = requests.get(okapiURL + logPath + logQueryString, headers=headers)
 
   if r.status_code != 200:
@@ -354,17 +356,18 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
   print("Attempting to get item data from inventory")
 
   itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None)
-
   if itemResults == -1:
     sys.exit()
-
+  
   itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, Number of Checkouts, Total Checkouts\n"
-
+  itemIds = []
   while itemResults:
     for item in itemResults:
-      if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
-        print("logging checkout data for item " + item["id"])
-        itemData = itemData + generateEntry(item, count)
+      if item["id"] not in itemIds:
+        itemIds.append(item["id"])
+        if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
+          print("logging checkout data for item " + item["id"])
+          itemData = itemData + generateEntry(item, count)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None)
