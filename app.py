@@ -54,7 +54,7 @@ class InventoryForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
-  callNumberStem = TextField('Call Number Stem', validators=[InputRequired()])
+  callNumberStem = TextField('Call Number Stem')
   cutoffDate = DateField('Cut Off Date:', validators=[InputRequired()], format='%Y-%m-%d')
   submit = SubmitField('Submit')
 
