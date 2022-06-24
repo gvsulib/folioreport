@@ -185,10 +185,11 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, h
     statusQuery = ' and (status.name==("Available") or status.name==("in transit"))'
 
   if cutoffDate is not None:
-    cutoffQuery = ' and status.date<=("' + cutoffDate + 'T00:00:00.000")'
+    cutoffQuery = ' and lastCheckIn.dateTime<=("' + cutoffDate + 'T00:00:00.000")'
 
   callNumberQuery = 'effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
   itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
+  print("item query: " + itemQueryString)
   r = requests.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -213,8 +214,9 @@ def generateInventoryEntry(entry):
   else:
     x.append("")
   x.append(entry["status"]["name"])
-  if "date" in entry["status"]:
-    x.append('"' + entry["status"]["date"] + '"')
+  if "lastCheckIn" in entry:
+    if "dateTime" in entry["lastCheckIn"]:
+      x.append('"' + entry["lastCheckIn"]["dateTime"] + '"')
   else:
     x.append("")
   return ",".join(x) + "\n"
