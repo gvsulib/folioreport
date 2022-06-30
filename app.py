@@ -113,14 +113,14 @@ def login():
   authForm = authenticationForm()
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn != None and loggedIn == "true":
-    return redirect("/choose", code=302)
+    return redirect("/reports/choose", code=302)
   if authForm.validate_on_submit():
     passwd = authForm.password.data
     if passwd != externalPass.strip():
       message = "Invalid Password"
       return render_template('index.html', form=authForm, message=message,formName=formName)
     else:
-      resp = make_response(redirect("/choose", code=302))
+      resp = make_response(redirect("/reports/choose", code=302))
       resp.set_cookie('loggedIn', 'true')
       return resp
   return render_template('index.html', form=authForm, message="", formName=formName)
@@ -130,7 +130,7 @@ def reservereport():
   formName = "Reserves use report"
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn == None or loggedIn != "true":
-    return redirect("/login", code=302)
+    return redirect("/reports/login", code=302)
   reservesReportForm = ReservesReportForm()
   if reservesReportForm.validate_on_submit():
     email = reservesReportForm.email.data
