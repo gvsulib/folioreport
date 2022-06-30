@@ -107,30 +107,30 @@ class myThread (Thread):
       generateReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
       print("finished, shutting down")
 
-@app.route('/reports/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
   formName = "Login"
   authForm = authenticationForm()
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn != None and loggedIn == "true":
-    return redirect("/reports/choose", code=302)
+    return redirect("/choose", code=302)
   if authForm.validate_on_submit():
     passwd = authForm.password.data
     if passwd != externalPass.strip():
       message = "Invalid Password"
       return render_template('index.html', form=authForm, message=message,formName=formName)
     else:
-      resp = make_response(redirect("/reports/choose", code=302))
+      resp = make_response(redirect("/choose", code=302))
       resp.set_cookie('loggedIn', 'true')
       return resp
   return render_template('index.html', form=authForm, message="", formName=formName)
 
-@app.route('/reports/reservereport', methods=['GET', 'POST'])
+@app.route('/reservereport', methods=['GET', 'POST'])
 def reservereport():
   formName = "Reserves use report"
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn == None or loggedIn != "true":
-    return redirect("/reports/login", code=302)
+    return redirect("/login", code=302)
   reservesReportForm = ReservesReportForm()
   if reservesReportForm.validate_on_submit():
     email = reservesReportForm.email.data
@@ -139,14 +139,14 @@ def reservereport():
     return render_template('success.html')
   return render_template('index.html', form=reservesReportForm, message="", formName=formName)
   
-@app.route('/reports/choose', methods=['GET'])
+@app.route('/choose', methods=['GET'])
 def choose():
   loggedIn = request.cookies.get('loggedIn')
   if loggedIn == None or loggedIn != "true":
     return redirect("/reports/login", code=302)
   return render_template('choose.html')
 
-@app.route('/reports/inventoryreport', methods=['GET', 'POST'])
+@app.route('/inventoryreport', methods=['GET', 'POST'])
 def inventoryreport():
   inventoryReportForm = InventoryForm()
   formName = 'Inventory Report Form'
@@ -167,7 +167,7 @@ def inventoryreport():
     return render_template('success.html')
   return render_template('index.html', form=inventoryReportForm, message=message, formName=formName)
 
-@app.route('/reports/usereport', methods=['GET', 'POST'])
+@app.route('/usereport', methods=['GET', 'POST'])
 def usereport():
 
   useReportForm = UseReportForm()
