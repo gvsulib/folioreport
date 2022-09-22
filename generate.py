@@ -6,18 +6,19 @@ from config import okapiURL
 from config import tenant
 from config import emailFrom
 import collections
+from requests.adapters import HTTPAdapter, Retry
 
 logPath="/audit-data/circulation/logs"
 
 emailTo = ""
 
-def getAllFromEndPoint(path, queryString, arrayName, headers):
+def getAllFromEndPoint(path, queryString, arrayName, headers, session):
   limit = "100"
   offset = 0
 
   fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
 
-  r = requests.get(okapiURL + path + fullQuery, headers=headers)
+  r = session.get(okapiURL + path + fullQuery, headers=headers)
   print("Attempting to get data from endpoint: " + path)
   if r.status_code != 200:
     error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -38,7 +39,7 @@ def getAllFromEndPoint(path, queryString, arrayName, headers):
     offset += 100
     fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
     print("attempting to fetch next 100 entries from " + str(offset))
-    r = requests.get(okapiURL + path + fullQuery, headers=headers)
+    r = session.get(okapiURL + path + fullQuery, headers=headers)
     json = r.json()[arrayName]
     if len(json) >= 1:
       list = list + json
@@ -48,7 +49,10 @@ def getAllFromEndPoint(path, queryString, arrayName, headers):
 
 
 def generateReservesUse(emailAddr):
+  session = requests.Session()
 
+  retries = Retry(total=5, backoff_factor=0.1)
+  session.mount('https://', HTTPAdapter(max_retries=retries))
   emailTo = emailAddr
   
   token = login.login()
@@ -63,7 +67,7 @@ def generateReservesUse(emailAddr):
   query = ""
   headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
   print("Attempting to get course and instructor data")
-  result = getAllFromEndPoint("/coursereserves/courses", "", "courses", headers)
+  result = getAllFromEndPoint("/coursereserves/courses", "", "courses", headers, session)
   print("instructor and course data retrieved")
   #extract course names from courses data
   courses = []
@@ -79,7 +83,7 @@ def generateReservesUse(emailAddr):
       "courseListingId":entry["courseListingId"]
       })
   print("Getting location data")
-  result = getAllFromEndPoint("/locations", "", "locations", headers)
+  result = getAllFromEndPoint("/locations", "", "locations", headers, session)
   print("Location data retrieved")
 
   #format location data to list with id number as key
@@ -89,23 +93,27 @@ def generateReservesUse(emailAddr):
 
   #get start and end dates from reserves data
   print("Getting listing of reserve items")
-  result = getAllFromEndPoint("/coursereserves/reserves", "", "reserves", headers)
+  result = getAllFromEndPoint("/coursereserves/reserves", "", "reserves", headers, session)
 
   #combine course and item data into single entries
   reserveItems = []
   for entry in result:
+    print("entry" + str(entry))
     location = ""
     if "temporaryLocationId" in entry["copiedItem"]:
       location = entry["copiedItem"]["temporaryLocationId"]
     elif "permanentLocationId" in entry["copiedItem"]:
       location = entry["copiedItem"]["permanentLocationId"]
+    barcode = ""
+    if "barcode" in entry["copiedItem"]:
+      barcode = entry["copiedItem"]["barcode"]
 
     locationText = locations[location]
 
     itemEntry = {
       "id": entry["itemId"],
       "title":entry["copiedItem"]["title"],
-      "barcode": entry["copiedItem"]["barcode"],
+      "barcode":barcode,
       "location": locationText,
       }
     for course in courses:
@@ -132,7 +140,7 @@ def generateReservesUse(emailAddr):
   logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
 
   #get circ log data for date ranges
-  result = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers)
+  result = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
   print("Data from circ logs retrieved")
   itemIdList = []
   print("Counting circ log checkouts for the time period: " + startDate + " to " + endDate)
@@ -177,7 +185,7 @@ def constructLocationQuery(locationList):
     return locationQuery + ')'
 
 
-def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, addStatus, cutoffDate):
+def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, addStatus, cutoffDate, session):
   locationQuery = constructLocationQuery(locationList)
   cutoffQuery = ''
   statusQuery = ''
@@ -190,7 +198,7 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, h
   callNumberQuery = 'effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
   itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
   print("item query: " + itemQueryString)
-  r = requests.get(okapiURL + itemPath + itemQueryString, headers=headers)
+  r = session.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
     print(error)
@@ -252,6 +260,10 @@ def generateEntry(entry, count):
 
 
 def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem):
+  session = requests.Session()
+
+  retries = Retry(total=5, backoff_factor=0.1)
+  session.mount('https://', HTTPAdapter(max_retries=retries))
   disallowed_characters = "''[]"
 
   for index, location in enumerate(locationList):
@@ -276,7 +288,7 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
 
   print("attempting to get inventory item data")
 
-  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate)
+  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate, session)
   
   if itemResults == -1:
     sys.exit()
@@ -292,7 +304,7 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
           itemData = itemData + generateInventoryEntry(item)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
-    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate)
+    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limit, locationList, headers, callNumberStem, True, cutoffDate, session)
   
   print("CSV data ready")
 
@@ -302,6 +314,10 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
 
 
 def generateReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
+  session = requests.Session()
+
+  retries = Retry(total=5, backoff_factor=0.1)
+  session.mount('https://', HTTPAdapter(max_retries=retries))
   disallowed_characters = "''[]"
 
   for index, location in enumerate(locationList):
@@ -331,7 +347,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
 
   print("attempting to get circ log data")
 
-  r = requests.get(okapiURL + logPath + logQueryString, headers=headers)
+  r = session.get(okapiURL + logPath + logQueryString, headers=headers)
 
   if r.status_code != 200:
     error = "Could not get data from circulation log, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -357,7 +373,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
 
   print("Attempting to get item data from inventory")
 
-  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None)
+  itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None, session)
   if itemResults == -1:
     sys.exit()
   
@@ -372,7 +388,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
           itemData = itemData + generateEntry(item, count)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
-    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None)
+    itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None, session)
 
 
 

@@ -14,6 +14,7 @@ from generate import generateReport
 from generate import generateReservesUse
 from generate import generateInventoryReport
 from flask_wtf.csrf import CSRFProtect
+
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
 csrf = CSRFProtect(app)
