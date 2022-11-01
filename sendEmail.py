@@ -13,9 +13,8 @@ def sendEmail(emailTo, fromAddr, messageBody, subject):
   message['Subject'] = subject
   
   try:
-    session = smtplib.SMTP('smtp.gmail.com', 587) #use gmail with port
+    session = smtplib.SMTP('smtp.gvsu.edu', 25) #use gmail with port
     session.starttls() #enable security
-    session.login(emailFrom, emailPass) #login with mail_id and password
     session.send_message(message)
     session.quit()
   except Exception as e:
@@ -33,9 +32,8 @@ def sendEmailWithAttachment(emailTo, fromAddr, subject, attachment):
     message['Subject'] = subject   #The subject line
     message.attach(MIMEText(emailBody, 'csv'))
     #Create SMTP session for sending the mail
-    session = smtplib.SMTP('smtp.gmail.com', 587) #use gmail with port
+    session = smtplib.SMTP('smtp.gvsu.edu', 25) #use gmail with port
     session.starttls() #enable security
-    session.login(emailFrom, emailPass) #login with mail_id and password
     text = message.as_string()
     session.sendmail(emailFrom, emailTo, text)
     session.quit()
