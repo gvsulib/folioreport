@@ -385,7 +385,6 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
     for item in itemResults:
       if item["id"] not in itemIds:
         itemIds.append(item["id"])
-        print(item["id"])
         if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
           print("logging checkout data for item " + item["id"])
           itemData = itemData + generateEntry(item, count)
