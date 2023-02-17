@@ -189,15 +189,17 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, h
   locationQuery = constructLocationQuery(locationList)
   cutoffQuery = ''
   statusQuery = ''
+  callNumberQuery = ''
   if addStatus:
     statusQuery = ' and (status.name==("Available") or status.name==("in transit"))'
 
   if cutoffDate is not None:
     cutoffQuery = ' and lastCheckIn.dateTime<=("' + cutoffDate + 'T00:00:00.000")'
-
-  callNumberQuery = 'effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
-  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + ' and ' + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
-  print("item query: " + itemQueryString)
+  
+  if callNumberStem != "":
+    callNumberQuery = ' and effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
+  itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
+  #print("item query: " + itemQueryString)
   r = session.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -383,6 +385,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
     for item in itemResults:
       if item["id"] not in itemIds:
         itemIds.append(item["id"])
+        print(item["id"])
         if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
           print("logging checkout data for item " + item["id"])
           itemData = itemData + generateEntry(item, count)
