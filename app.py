@@ -10,6 +10,7 @@ from wtforms.fields.html5 import DateField, EmailField
 from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanField, TextField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
+from generate import generateTemporaryLoanItem
 from generate import generateReport
 from generate import generateReservesUse
 from generate import generateInventoryReport
@@ -49,6 +50,10 @@ for entry in locations:
 Bootstrap(app)
 app.config['SECRET_KEY'] = secretKey
 
+class temporaryLoanItemReportForm(FlaskForm):
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  submit = SubmitField('Submit')
+
 class authenticationForm(FlaskForm):
   password = PasswordField('Enter Password: ', validators=[InputRequired()])
   submit = SubmitField('Submit')
@@ -74,6 +79,16 @@ class UseReportForm(FlaskForm):
 class  ReservesReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   submit = SubmitField('Generate Reserves Usage Report')
+
+class temporaryLoanItemThread (Thread):
+  def __init__(self, emailAddr, locations):
+    Thread.__init__(self)
+    self.emailAddr = emailAddr
+    self.locations = locations
+  def run (self):
+    print("Starting temporary loan item report")
+    generateTemporaryLoanItem(self.emailAddr, locations)
+    print("Finished, Shutting Down")
 
 class reservesThread (Thread):
   def __init__(self, emailAddr):
@@ -127,6 +142,20 @@ def login():
       resp.set_cookie('loggedIn', 'true')
       return resp
   return render_template('index.html', form=authForm, message="", formName=formName)
+
+@app.route('/temploanitem', methods=['GET', 'POST'])
+def temporaryLoanItem():
+  formName = "Items on temporary loan report"
+  loggedIn = request.cookies.get('loggedIn')
+  if loggedIn == None or loggedIn != "true":
+    return redirect("/reports/login", code=302)
+  tempLoanItemForm = temporaryLoanItemReportForm()
+  if tempLoanItemForm.validate_on_submit():
+    email = tempLoanItemForm.email.data
+    thread1 = temporaryLoanItemThread(email, locations)
+    thread1.start()
+    return render_template('success.html')
+  return render_template('index.html', form=tempLoanItemForm, message="", formName=formName)
 
 @app.route('/reservereport', methods=['GET', 'POST'])
 def reservereport():
