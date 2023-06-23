@@ -15,6 +15,11 @@ from generate import generateReport
 from generate import generateReservesUse
 from generate import generateInventoryReport
 from flask_wtf.csrf import CSRFProtect
+from datetime import datetime
+
+now = datetime.now()
+today = now.date()
+formDate = str(today.day) + "/" + str(today.month) + "/" + str(today.year)
 
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
@@ -66,13 +71,15 @@ class InventoryForm(FlaskForm):
   cutoffDate = DateField('Cut Off Date:', validators=[InputRequired()], format='%Y-%m-%d')
   submit = SubmitField('Submit')
 
+d = datetime(2021, 7, 1)
+
 class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   location = NoValidationSelectMultipleField('Location:', choices=selectValues)
   callNumberStem = TextField('Call Number Stem')
-  startDate = DateField('Start Date:', validators=[InputRequired()], format='%Y-%m-%d')
-  endDate = DateField('End Date:', validators=[InputRequired()],  format='%Y-%m-%d')
+  startDate = DateField('Start Date:', default=d, validators=[InputRequired()], format='%Y-%m-%d')
+  endDate = DateField('End Date:', default=datetime.today, validators=[InputRequired()],  format='%Y-%m-%d')
   includeSuppressed = BooleanField('Include suppressed records')
   submit = SubmitField('Submit')
 

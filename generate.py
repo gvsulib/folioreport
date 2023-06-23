@@ -185,7 +185,7 @@ def generateReservesUse(emailAddr):
     itemIdList.append(entry["items"][0]["itemId"])
   count = collections.Counter(itemIdList)
   print("collating data for final report to CSV")
-  itemData = "Item id, title, Barcode, location, course name, course code, instructor, checkout events\n"
+  itemData = "Item id, title, Barcode, location, course name, course code, instructor, folio checkout events\n"
 
   for item in reserveItems:
     x = []
@@ -413,7 +413,7 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
     error = "Cannot get item data from inventory"
     handleErrorAndQuit(error, emailTo, reportType)
   
-  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, Number of Checkouts, Total Checkouts\n"
+  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021\n"
   itemIds = []
   while itemResults:
     for item in itemResults:
