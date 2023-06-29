@@ -11,7 +11,7 @@ from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanFiel
 from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateTemporaryLoanItem
-from generate import generateReport
+from generate import generateCheckoutReport
 from generate import generateReservesUse
 from generate import generateInventoryReport
 from flask_wtf.csrf import CSRFProtect
@@ -128,8 +128,8 @@ class myThread (Thread):
       self.includeSuppressed = includeSuppressed
       self.callNumberStem = callNumberStem
    def run(self):
-      print("Starting report")
-      generateReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
+      print("Starting checkout report")
+      generateCheckoutReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
       print("finished, shutting down")
 
 @app.route('/login', methods=['GET', 'POST'])

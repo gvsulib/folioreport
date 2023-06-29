@@ -28,6 +28,26 @@ def getTitleforItem(itemid, headers, session):
     sys.exit()
   return r.json()["title"]
 
+def getRecordById(id, path, headers, session):
+  url = okapiURL + path + id
+  print("Attempting to get record from: " + url + " with id: " + str(id))
+  r = session.get(url, headers=headers)
+  if r.status_code != 200:
+    error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
+    print(error)
+    sendEmail.sendEmail(emailTo, emailFrom, error, "Error Generating checkout report")
+    sys.exit()
+  return r.json()
+
+def getRetentionDataFromHoldings(itemRecord, headers, session):
+  holdingsId = itemRecord["holdingsRecordId"]
+  path = "/holdings-storage/holdings/"
+  json = getRecordById(holdingsId, path, headers, session)
+  if "retentionPolicy" in json:
+    return "\"" + json["retentionPolicy"] + "\""
+  else:
+    return ""
+
 def getLocationsFromHoldings(holdingsId, headers, session):
   url = okapiURL + "/holdings-storage/holdings/" + holdingsId
   print(url)
@@ -269,7 +289,7 @@ def generateInventoryEntry(entry):
   return ",".join(x) + "\n"
 
 
-def generateEntry(entry, count):
+def generateCheckoutEntry(entry, count, retentionData):
   totalCheckout = "none"
   x = []
   x.append(entry["id"])
@@ -295,6 +315,7 @@ def generateEntry(entry, count):
         totalCheckout = note["note"]
 
   x.append(totalCheckout)
+  x.append(retentionData)
   return ",".join(x) + "\n"
 
 
@@ -352,7 +373,7 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
   print("Done, closing down")
 
 
-def generateReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
+def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
   reportType="Item use report"
   session = requests.Session()
 
@@ -369,7 +390,6 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
   if token == 0:
     error = "Cannot log into folio"
     handleErrorAndQuit(error, emailTo, reportType)
-    
 
   itemPath = "/inventory/items"
 
@@ -412,24 +432,22 @@ def generateReport(startDate, endDate, locationList, emailAddr, includeSuppresse
   if itemResults == -1:
     error = "Cannot get item data from inventory"
     handleErrorAndQuit(error, emailTo, reportType)
-  
-  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021\n"
+  print("formatting report")
+  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021, Retention Policy\n"
   itemIds = []
   while itemResults:
     for item in itemResults:
       if item["id"] not in itemIds:
         itemIds.append(item["id"])
         if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
+          retentionData = getRetentionDataFromHoldings(item, headers, session)
           print("logging checkout data for item " + item["id"])
-          itemData = itemData + generateEntry(item, count)
+          itemData = itemData + generateCheckoutEntry(item, count, retentionData)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None, session)
-
-
-
   print("CSV data ready")
-
+  print(itemData)
   sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "Checkout Report", itemData)
   print('Report sent')
   print("Done, closing down")
@@ -493,33 +511,3 @@ def generateTemporaryLoanItem(emailAddr, locationList):
   sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "Items on Temporary Loan Report", csv)
   print('Report sent')
   print("Done, closing down")
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
