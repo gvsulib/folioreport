@@ -195,8 +195,8 @@ def generateReservesUse(emailAddr):
 
   #get circ log data for date ranges
   result = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
-  if len(result) > 1:
-    errror="No circulation data found for date ranges provided"
+  if len(result) < 1:
+    error="No circulation data found for date ranges provided"
     handleErrorAndQuit(error, emailTo, reportType)
   print("Data from circ logs retrieved")
   itemIdList = []
