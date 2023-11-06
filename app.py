@@ -7,13 +7,14 @@ import sys
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField, EmailField
-from wtforms import SubmitField, SelectMultipleField, PasswordField, BooleanField, TextField
+from wtforms import SubmitField, SelectMultipleField, SelectField, PasswordField, BooleanField, TextField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateTemporaryLoanItem
 from generate import generateCheckoutReport
 from generate import generateReservesUse
 from generate import generateInventoryReport
+from generate import generateNoCheckout
 from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 
@@ -55,6 +56,14 @@ for entry in locations:
 Bootstrap(app)
 app.config['SECRET_KEY'] = secretKey
 
+d = datetime(2021, 7, 1)
+
+class NoCheckoutReportForm(FlaskForm):
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  location = SelectField('Location:', choices=selectValues, validators=[InputRequired()])
+  cutoffDate = DateField('Start Date:', default=d, validators=[InputRequired()], format='%Y-%m-%d')
+  submit = SubmitField('Submit')
+
 class temporaryLoanItemReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   submit = SubmitField('Submit')
@@ -71,8 +80,6 @@ class InventoryForm(FlaskForm):
   cutoffDate = DateField('Cut Off Date:', validators=[InputRequired()], format='%Y-%m-%d')
   submit = SubmitField('Submit')
 
-d = datetime(2021, 7, 1)
-
 class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
@@ -86,6 +93,17 @@ class UseReportForm(FlaskForm):
 class  ReservesReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   submit = SubmitField('Generate Reserves Usage Report')
+
+class noCheckoutThread (Thread):
+  def __init__(self, emailAddr, location, date):
+    Thread.__init__(self)
+    self.emailAddr = emailAddr
+    self.location = location
+    self.date = date
+  def run (self):
+    print("Starting no checkout report")
+    generateNoCheckout(self.emailAddr, self.location, self.date)
+    print("Finished, Shutting Down")
 
 class temporaryLoanItemThread (Thread):
   def __init__(self, emailAddr, locations):
@@ -238,4 +256,21 @@ def usereport():
       return render_template('success.html')
   return render_template('index.html', form=useReportForm, message=message, formName=formName)
 
+@app.route('/nocheckoutreport', methods=['GET', 'POST'])
+def nocheckoutreport():
+
+  noCheckoutForm = NoCheckoutReportForm()
+  formName = "No Checkout Report Form"
+  message = ""
+
+  if noCheckoutForm.validate_on_submit():
+    cutoffDate = noCheckoutForm.cutoffDate.data 
+    email = noCheckoutForm.email.data
+    location = noCheckoutForm.location.data
+    cutoffDate = cutoffDate.strftime('%Y-%m-%d')
+    thread1 = noCheckoutThread(email, location, cutoffDate)
+    thread1.start()
+    return render_template('success.html')
+  
+  return render_template('index.html', form=noCheckoutForm, message=message, formName=formName)
 

@@ -404,7 +404,7 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
   headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
 
   print("attempting to get circ log data")
-
+  print(" circ log url: " + okapiURL + logPath + logQueryString)
   r = session.get(okapiURL + logPath + logQueryString, headers=headers)
 
   if r.status_code != 200:
@@ -417,8 +417,12 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
 
   itemIdList = []
   print("Counting circ log checkouts for the time period")
+  count = 0
   for entry in logRecords:
+    count += 1
     itemIdList.append(entry["items"][0]["itemId"])
+
+  print(str(count) + " records retrieved from circ log")
 
   del logRecords
 
@@ -511,3 +515,6 @@ def generateTemporaryLoanItem(emailAddr, locationList):
   sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "Items on Temporary Loan Report", csv)
   print('Report sent')
   print("Done, closing down")
+
+def generateNoCheckout(emailAddr, location, date):
+  print("starting no checkout report")
