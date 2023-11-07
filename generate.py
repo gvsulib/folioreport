@@ -8,14 +8,36 @@ from config import emailFrom
 import collections
 from requests.adapters import HTTPAdapter, Retry
 
+def handleErrorAndQuit(msg, emailTo, reportType):
+  print(msg)
+  sendEmail.sendEmail(emailTo, emailFrom, msg, "Error Generating" + reportType + "Report")
+  sys.exit()
+
 logPath="/audit-data/circulation/logs"
+
+itemPath = "/inventory/items"
+
+holdingsPath = "/holdings-storage/holdings"
+
+instancePath = "/instance-storage/instances"
+
+locationsPath = "/locations"
 
 emailTo = "felkerk@gvsu.edu"
 
-def handleErrorAndQuit(msg, emailTo, reportType):
-    print(msg)
-    sendEmail.sendEmail(emailTo, emailFrom, msg, "Error Generating" + reportType + "Report")
-    sys.exit()
+session = requests.Session()
+
+retries = Retry(total=5, backoff_factor=0.1)
+session.mount('https://', HTTPAdapter(max_retries=retries))
+disallowed_characters = "''[]"
+
+token = login.login()
+if token == 0:
+  reportType = "All"
+  error = "Cannot log into folio"
+  handleErrorAndQuit(error, emailTo, reportType)
+
+headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
 
 def getTitleforItem(itemid, headers, session):
   url = okapiURL + "/inventory/items/" + itemid
@@ -517,4 +539,69 @@ def generateTemporaryLoanItem(emailAddr, locationList):
   print("Done, closing down")
 
 def generateNoCheckout(emailAddr, location, date):
-  print("starting no checkout report")
+  reportType="No checkout report"
+  
+  for character in disallowed_characters:
+    location = location.replace(character, "")
+  
+  locationEntry = getRecordById(location, locationsPath + "/", headers, session)
+  locationName = locationEntry["name"]
+  
+  logQueryString = "&query=(action==\"Checked out\" and date >= " + date + ")"
+
+  print("date" + date)
+  print("attempting to get circ log data")
+  print(" circ log url: " + okapiURL + logPath + logQueryString)
+
+  logResults = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
+  
+  if len(logResults) < 1:
+    msg = "No checkout events found in log since specified date:" + date
+    print(msg)
+    handleErrorAndQuit(msg, emailTo, reportType)
+  
+  print(str(len(logResults)) + " log entries retrieved, extracting ids and de-duping")
+  checkoutArray = []
+  for result in logResults:
+    checkoutArray.append(result["items"][0]["itemId"])
+  
+  del logResults
+
+  checkoutArray = list(set(checkoutArray))
+
+  print(str(len(checkoutArray)) + " ids in log list, getting items")
+  
+  itemQuery = "&query=(status.name==\"Available\" and effectiveLocationId==" + location + ")"
+
+  itemResults = getAllFromEndPoint(itemPath, itemQuery, "items", headers, session)
+
+  print(str(len(itemResults)) + " items retrieved in selected location")
+  print("Crosschecking against log list")
+  itemCSV = "itemId,Barcode,callNumber,location,status,title\n"
+  for item in itemResults:
+    id = item["id"]
+    if id not in checkoutArray:
+      print("Item with id " + id + " has no checkout events since cutoff date, including")
+      barcode = ""
+      if "barcode" in item:
+        barcode = item["barcode"]
+      title = getTitleforItem(item["id"],headers,session)
+      callNumber = item["effectiveCallNumberComponents"]["callNumber"]
+      status = item["status"]["name"]
+      line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
+      itemCSV += line
+    else:
+      print("Item with barcode " + itemBarcode + " has at least one checkout event, skipping")
+
+  print(itemCSV)
+  print("Parsing done, attempting to send file")
+  sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "No Checkout event report", itemCSV)
+  print('Report sent')
+  print("Done, closing down")
+
+
+  
+
+
+
+  

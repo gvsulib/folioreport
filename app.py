@@ -52,7 +52,6 @@ selectValues = []
 for entry in locations:
   selectValues.append(([entry["id"]], entry["name"]))
 
-
 Bootstrap(app)
 app.config['SECRET_KEY'] = secretKey
 
