@@ -397,63 +397,34 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
 
 def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
   reportType="Item use report"
-  session = requests.Session()
-
-  retries = Retry(total=5, backoff_factor=0.1)
-  session.mount('https://', HTTPAdapter(max_retries=retries))
-  disallowed_characters = "''[]"
 
   for index, location in enumerate(locationList):
     for character in disallowed_characters:
       location = location.replace(character, "")
     locationList[index] = location
-
-  token = login.login()
-  if token == 0:
-    error = "Cannot log into folio"
-    handleErrorAndQuit(error, emailTo, reportType)
-
-  itemPath = "/inventory/items"
-
-  limitLog = "100000"
-
-  limitItem = "99"
-
-  offset = 0
   
-  logQueryString = "?limit=" + limitLog + "&offset=0&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
+  logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
   
-  headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
-
   print("attempting to get circ log data")
-  print(" circ log url: " + okapiURL + logPath + logQueryString)
-  r = session.get(okapiURL + logPath + logQueryString, headers=headers)
+ 
+  logRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
 
-  if r.status_code != 200:
-    error = "Could not get data from circulation log, status code: " + str(r.status_code) + " Error message:" + r.text
-    handleErrorAndQuit(error, emailTo, reportType)
-    
-  temp = r.json()
-  logRecords = temp["logRecords"]
-  print(str(temp["totalRecords"]) + " records retrieved from circ log for given dates")
+  print(str(len(logRecords)) + " records retrieved from circ log for given dates")
 
   itemIdList = []
   print("Counting circ log checkouts for the time period")
-  count = 0
-  for entry in logRecords:
-    count += 1
-    itemIdList.append(entry["items"][0]["itemId"])
 
-  print(str(count) + " records retrieved from circ log")
+  for entry in logRecords:
+    itemIdList.append(entry["items"][0]["itemId"])
 
   del logRecords
 
   count = collections.Counter(itemIdList)
 
   del itemIdList
-
+  offset = 0
   print("Attempting to get item data from inventory")
-
+  limitItem = "100"
   itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None, session)
   if itemResults == -1:
     error = "Cannot get item data from inventory"
@@ -461,6 +432,7 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
   print("formatting report")
   itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021, Retention Policy\n"
   itemIds = []
+
   while itemResults:
     for item in itemResults:
       if item["id"] not in itemIds:
