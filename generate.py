@@ -591,7 +591,7 @@ def generateNoCheckout(emailAddr, location, date):
       line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
       itemCSV += line
     else:
-      print("Item with barcode " + itemBarcode + " has at least one checkout event, skipping")
+      print("Item with id " + id + " has at least one checkout event, skipping")
 
   print(itemCSV)
   print("Parsing done, attempting to send file")
