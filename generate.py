@@ -311,8 +311,9 @@ def generateInventoryEntry(entry):
   return ",".join(x) + "\n"
 
 
-def generateCheckoutEntry(entry, count, retentionData):
+def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
   totalCheckout = "none"
+
   x = []
   x.append(entry["id"])
   x.append('"' + entry["effectiveLocation"]["name"] + '"')
@@ -326,8 +327,8 @@ def generateCheckoutEntry(entry, count, retentionData):
   else:
     x.append("")
   x.append(entry["metadata"]["createdDate"])
-  if entry["id"] in count:
-    x.append(str(count[entry["id"]]))
+  if entry["id"] in checkoutCount:
+    x.append(str(checkoutCount[entry["id"]]))
   else:
     x.append("0")
   if "notes" in entry:
@@ -337,27 +338,23 @@ def generateCheckoutEntry(entry, count, retentionData):
         totalCheckout = note["note"]
 
   x.append(totalCheckout)
+
+  if entry["id"] in inhouseUseCount:
+    x.append(str(inhouseUseCount[entry["id"]]))
+  else:
+    x.append("0")
+
   x.append(retentionData)
   return ",".join(x) + "\n"
 
 
 def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem):
   reportType="item use report"
-  session = requests.Session()
-
-  retries = Retry(total=5, backoff_factor=0.1)
-  session.mount('https://', HTTPAdapter(max_retries=retries))
-  disallowed_characters = "''[]"
 
   for index, location in enumerate(locationList):
     for character in disallowed_characters:
       location = location.replace(character, "")
     locationList[index] = location
-
-  token = login.login()
-  if token == 0:
-    error = "Unable to log in to folio."
-    handleErrorAndQuit(error, emailTo, reportType)
 
   itemPath = "/inventory/items"
 
@@ -407,21 +404,44 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
   
   print("attempting to get circ log data")
  
-  logRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
+  checkoutRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
 
-  print(str(len(logRecords)) + " records retrieved from circ log for given dates")
+  print(str(len(checkoutRecords)) + " records retrieved from circ log for given dates")
 
-  itemIdList = []
+  checkoutItemIdList = []
   print("Counting circ log checkouts for the time period")
 
-  for entry in logRecords:
-    itemIdList.append(entry["items"][0]["itemId"])
+  for entry in checkoutRecords:
+    checkoutItemIdList.append(entry["items"][0]["itemId"])
 
-  del logRecords
+  del checkoutRecords
 
-  count = collections.Counter(itemIdList)
+  checkoutCount = collections.Counter(checkoutItemIdList)
 
-  del itemIdList
+  del checkoutItemIdList
+  print("Check-out events counted")
+  print("Attempting to get check-in events for the time period")
+  logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20in*%22%29%29%20sortby%20date%2Fsort.descending"
+  
+  checkinRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
+  print(str(len(checkinRecords)) + " checkin records retrieved from circ log for given dates")
+
+  print("filtering for in-house checkin events")
+  checkinItemIdList = []
+  
+  logentryId = []
+  for record in checkinRecords:
+    item = record["items"][0]
+    if not record["linkToIds"] and "loanId" not in item:
+      checkinItemIdList.append(item["itemId"])
+      logentryId.append(record["id"])
+
+  del checkinRecords
+
+  inhouseUseCount = collections.Counter(checkinItemIdList)
+  print("checkins without loan data: " + str(logentryId))
+
+  del checkinItemIdList
   offset = 0
   print("Attempting to get item data from inventory")
   limitItem = "100"
@@ -430,7 +450,7 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
     error = "Cannot get item data from inventory"
     handleErrorAndQuit(error, emailTo, reportType)
   print("formatting report")
-  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021, Retention Policy\n"
+  itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021, in-house use, Retention Policy\n"
   itemIds = []
 
   while itemResults:
@@ -440,7 +460,7 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
         if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
           retentionData = getRetentionDataFromHoldings(item, headers, session)
           print("logging checkout data for item " + item["id"])
-          itemData = itemData + generateCheckoutEntry(item, count, retentionData)
+          itemData = itemData + generateCheckoutEntry(item, checkoutCount, inhouseUseCount, retentionData)
     offset += 100
     print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None, session)
@@ -519,7 +539,7 @@ def generateNoCheckout(emailAddr, location, date):
   locationEntry = getRecordById(location, locationsPath + "/", headers, session)
   locationName = locationEntry["name"]
   
-  logQueryString = "&query=(action==\"Checked out\" and date >= " + date + ")"
+  logQueryString = "&query=(action==(\"Checked out\" or \"Checked in\") and date >= " + date + ")"
 
   print("date" + date)
   print("attempting to get circ log data")
