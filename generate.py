@@ -312,7 +312,7 @@ def generateInventoryEntry(entry):
 
 
 def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
-  totalCheckout = "none"
+  totalCheckout = "0"
 
   x = []
   x.append(entry["id"])
@@ -321,7 +321,9 @@ def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
     x.append('"' + entry["callNumber"] + '"')
   else:
     x.append("")
-  x.append('"' + entry["title"] + '"')
+  title = entry["title"].replace('"', '')
+  title = title.replace('\'', '')
+  x.append('"' + title + '"')
   if "barcode" in entry:
     x.append(entry["barcode"])
   else:
@@ -434,12 +436,10 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
     item = record["items"][0]
     if not record["linkToIds"] and "loanId" not in item:
       checkinItemIdList.append(item["itemId"])
-      logentryId.append(record["id"])
 
   del checkinRecords
 
   inhouseUseCount = collections.Counter(checkinItemIdList)
-  print("checkins without loan data: " + str(logentryId))
 
   del checkinItemIdList
   offset = 0
