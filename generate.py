@@ -538,52 +538,26 @@ def generateNoCheckout(emailAddr, location, date):
   
   locationEntry = getRecordById(location, locationsPath + "/", headers, session)
   locationName = locationEntry["name"]
-  
-  logQueryString = "&query=(action==(\"Checked out\" or \"Checked in\") and date >= " + date + ")"
-
-  print("date" + date)
-  print("attempting to get circ log data")
-  print(" circ log url: " + okapiURL + logPath + logQueryString)
-
-  logResults = getAllFromEndPoint(logPath, logQueryString, "logRecords", headers, session)
-  
-  if len(logResults) < 1:
-    msg = "No checkout events found in log since specified date:" + date
-    print(msg)
-    handleErrorAndQuit(msg, emailTo, reportType)
-  
-  print(str(len(logResults)) + " log entries retrieved, extracting ids and de-duping")
-  checkoutArray = []
-  for result in logResults:
-    checkoutArray.append(result["items"][0]["itemId"])
-  
-  del logResults
-
-  checkoutArray = list(set(checkoutArray))
-
-  print(str(len(checkoutArray)) + " ids in log list, getting items")
-  
-  itemQuery = "&query=(status.name==\"Available\" and effectiveLocationId==" + location + ")"
+  print("Getting all available items in " + locationName + " with updated date later than " + date)
+  itemQuery = "&query=(status.name==\"Available\" and effectiveLocationId==" + location + " and metadata.updatedDate < " + date + ")"
 
   itemResults = getAllFromEndPoint(itemPath, itemQuery, "items", headers, session)
 
-  print(str(len(itemResults)) + " items retrieved in selected location")
-  print("Crosschecking against log list")
+  print(str(len(itemResults)) + " items retrieved for the criteria, creating CSV")
+  
   itemCSV = "itemId,Barcode,callNumber,location,status,title\n"
   for item in itemResults:
     id = item["id"]
-    if id not in checkoutArray:
-      print("Item with id " + id + " has no checkout events since cutoff date, including")
-      barcode = ""
-      if "barcode" in item:
-        barcode = item["barcode"]
-      title = getTitleforItem(item["id"],headers,session)
-      callNumber = item["effectiveCallNumberComponents"]["callNumber"]
-      status = item["status"]["name"]
-      line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
-      itemCSV += line
-    else:
-      print("Item with id " + id + " has at least one checkout event, skipping")
+
+    print("Item with id " + id + " has no modifications on or after cutoff date, including")
+    barcode = ""
+    if "barcode" in item:
+      barcode = item["barcode"]
+    title = getTitleforItem(item["id"],headers,session)
+    callNumber = item["effectiveCallNumberComponents"]["callNumber"]
+    status = item["status"]["name"]
+    line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
+    itemCSV += line
 
   print(itemCSV)
   print("Parsing done, attempting to send file")
