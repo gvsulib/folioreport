@@ -550,12 +550,20 @@ def generateNoCheckout(emailAddr, location, date):
     id = item["id"]
 
     print("Item with id " + id + " has no modifications on or after cutoff date, including")
-    barcode = ""
+    barcode = "none"
+    callNumber = "none"
+    callNumberComponents = item["effectiveCallNumberComponents"]
     if "barcode" in item:
       barcode = item["barcode"]
+    if callNumberComponents["callNumber"] is not None:
+      callNumber = callNumberComponents["callNumber"]
     title = getTitleforItem(item["id"],headers,session)
-    callNumber = item["effectiveCallNumberComponents"]["callNumber"]
     status = item["status"]["name"]
+    print(barcode)
+    print("callNumber: " + callNumber)
+    print(locationName)
+    print(status)
+    print("title:" + title)
     line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
     itemCSV += line
 
