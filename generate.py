@@ -107,8 +107,10 @@ def getAllFromEndPoint(path, queryString, arrayName, headers, session):
 
   if len(json) < 1:
     return []
-  
-  list = json
+  itemList = {}
+  for item in json:
+    itemList[item["id"]] = item
+
 
   while json:
     offset += 100
@@ -117,9 +119,13 @@ def getAllFromEndPoint(path, queryString, arrayName, headers, session):
     r = session.get(okapiURL + path + fullQuery, headers=headers)
     json = r.json()[arrayName]
     if len(json) >= 1:
-      list = list + json
+      for item in json:
+        itemList[item["id"]] = item
     else:
       print("No more data to fetch")
+
+  list = [*itemList.values()]
+
   return list
 
 def generateReservesUse(emailAddr):
@@ -559,15 +565,8 @@ def generateNoCheckout(emailAddr, location, date):
       callNumber = callNumberComponents["callNumber"]
     title = getTitleforItem(item["id"],headers,session)
     status = item["status"]["name"]
-    print(barcode)
-    print("callNumber: " + callNumber)
-    print(locationName)
-    print(status)
-    print("title:" + title)
     line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
     itemCSV += line
-
-  print(itemCSV)
   print("Parsing done, attempting to send file")
   sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "No Checkout event report", itemCSV)
   print('Report sent')
