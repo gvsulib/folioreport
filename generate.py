@@ -151,6 +151,18 @@ def generateReservesUse(emailAddr):
     msg = "No reserves data found in reserves endpoint"
     handleErrorAndQuit(error, emailTo, reportType)
   print("instructor and course data retrieved")
+  #extract term dates from courses object-they should all have the same term
+  print("extracting start and end dates")
+  term = result[0]["courseListingObject"]["termObject"]
+
+  startDate = term["startDate"]
+
+  print("start date: " + startDate)
+
+  endDate = term["endDate"]
+
+  print("end date: " + endDate)
+
   #extract course names from courses data
   courses = []
   for entry in result:
@@ -207,15 +219,6 @@ def generateReservesUse(emailAddr):
     reserveItems.append(itemEntry)
 
   print("Reserve items retrieved")
-  
-  print("extracting start and end dates")
-  startDate = result[0]["startDate"]
-
-  print("start date: " + startDate)
-
-  endDate = result[0]["endDate"]
-
-  print("end date: " + endDate)
 
   print("Attempting to get data from circ logs for the time period: " + startDate + " to " + endDate)
 
