@@ -9,7 +9,6 @@ import collections
 from requests.adapters import HTTPAdapter, Retry
 
 def handleErrorAndQuit(msg, emailTo, reportType):
-  print(msg)
   sendEmail.sendEmail(emailTo, emailFrom, msg, "Error Generating" + reportType + "Report")
   sys.exit()
 
@@ -129,6 +128,7 @@ def getAllFromEndPoint(path, queryString, arrayName, headers, session):
   return list
 
 def generateReservesUse(emailAddr):
+  emailTo = emailAddr
   reportType = "Reserves Use"
   session = requests.Session()
 
@@ -360,6 +360,7 @@ def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
 
 
 def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem):
+  emailTo = emailAddr
   reportType="item use report"
 
   for index, location in enumerate(locationList):
@@ -404,6 +405,7 @@ def generateInventoryReport(cutoffDate, locationList, emailAddr, callNumberStem)
 
 
 def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeSuppressed, callNumberStem): 
+  emailTo = emailAddr
   reportType="Item use report"
 
   for index, location in enumerate(locationList):
@@ -474,12 +476,15 @@ def generateCheckoutReport(startDate, endDate, locationList, emailAddr, includeS
     print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(emailAddr, offset, okapiURL, itemPath, limitItem, locationList, headers, callNumberStem, False, None, session)
   print("CSV data ready")
-  print(itemData)
+  f = open("report.csv", "w")
+  f.write(itemData)
+  f.close()
   sendEmail.sendEmailWithAttachment(emailAddr, emailFrom, "Checkout Report", itemData)
   print('Report sent')
   print("Done, closing down")
 
 def generateTemporaryLoanItem(emailAddr, locationList):
+  emailTo = emailAddr
   print("starting")
   reportType="Item records with temporary loans"
   loanTypes = {"83eaaffa-6adf-4213-a154-33c53e3a550a":"3 hour reserve",
@@ -490,7 +495,6 @@ def generateTemporaryLoanItem(emailAddr, locationList):
   for entry in locationList:
     locationNames[entry["id"]] = entry["name"]
 
-  print(str(locationNames))
   session = requests.Session()
 
   retries = Retry(total=5, backoff_factor=0.1)
@@ -540,6 +544,7 @@ def generateTemporaryLoanItem(emailAddr, locationList):
   print("Done, closing down")
 
 def generateNoCheckout(emailAddr, location, date):
+  emailTo = emailAddr
   reportType="No checkout report"
   
   for character in disallowed_characters:

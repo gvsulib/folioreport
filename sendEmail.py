@@ -43,5 +43,8 @@ def sendEmailWithAttachment(emailTo, fromAddr, subject, attachment):
     session.sendmail(emailFrom, emailTo, text)
     session.quit()
   except Exception as e:
-    print("Unable to send mail: " + str(e))
+    msg = "Unable to send mail: " + str(e)
+    subject = "Error: cannot email report"
+    print(msg)
+    sendEmail(emailTo, fromAddr, msg, subject)
     return
