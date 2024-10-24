@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, request
 from flask.helpers import make_response
 from config import secretKey, okapiURL, tenant, externalPass
-import login
+import folioAuthenticate
 import requests
 import sys
 from flask_bootstrap import Bootstrap
@@ -18,6 +18,25 @@ from generate import generateNoCheckout
 from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 
+def getLocationData(token):
+  error = ""
+  locationPath = "/locations?limit=2000&query=cql.allRecords%3D1%20sortby%20name"
+  headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
+  r = requests.get(okapiURL + locationPath, headers=headers)
+  if r.status_code != 200:
+    error = "Cannot Get location code data from folio: " + str(r.status_code) + r.text
+    return error
+
+  temp = r.json()
+  locations = temp["locations"]
+  if len(locations) == 0:
+    error = "No locations defined."
+
+  selectValues = []
+  for entry in locations:
+    selectValues.append(([entry["id"]], entry["name"]))
+  return selectValues
+
 now = datetime.now()
 today = now.date()
 formDate = str(today.day) + "/" + str(today.month) + "/" + str(today.year)
@@ -25,32 +44,21 @@ formDate = str(today.day) + "/" + str(today.month) + "/" + str(today.year)
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
 csrf = CSRFProtect(app)
-token = login.login()
+token = folioAuthenticate.login()
 if token == 0:
   sys.exit()
+selectValues = getLocationData(token)
 error = ""
-locationPath = "/locations?limit=2000&query=cql.allRecords%3D1%20sortby%20name"
-headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
+if type(selectValues) is str:
+  error = selectValues
+folioAuthenticate.logout(token)
+
 #selectmultipleField will auto-fail validation and refuse to submit form
 #without this
 class NoValidationSelectMultipleField(SelectMultipleField):
     def pre_validate(self, form):
       pass
       """per_validation is disabled"""
-
-r = requests.get(okapiURL + locationPath, headers=headers)
-if r.status_code != 200:
-  error = "Cannot Get location code data from folio: " + str(r.status_code) + r.text
-  sys.exit()
-
-temp = r.json()
-locations = temp["locations"]
-if len(locations) == 0:
-  error = "No locations defined."
-
-selectValues = []
-for entry in locations:
-  selectValues.append(([entry["id"]], entry["name"]))
 
 Bootstrap(app)
 app.config['SECRET_KEY'] = secretKey
@@ -111,7 +119,7 @@ class temporaryLoanItemThread (Thread):
     self.locations = locations
   def run (self):
     print("Starting temporary loan item report")
-    generateTemporaryLoanItem(self.emailAddr, locations)
+    generateTemporaryLoanItem(self.emailAddr, self.locations)
     print("Finished, Shutting Down")
 
 class reservesThread (Thread):
@@ -150,7 +158,7 @@ class myThread (Thread):
       print("finished, shutting down")
 
 @app.route('/login', methods=['GET', 'POST'])
-def login():
+def sysLogin():
   formName = "Login"
   authForm = authenticationForm()
   loggedIn = request.cookies.get('loggedIn')
@@ -176,7 +184,7 @@ def temporaryLoanItem():
   tempLoanItemForm = temporaryLoanItemReportForm()
   if tempLoanItemForm.validate_on_submit():
     email = tempLoanItemForm.email.data
-    thread1 = temporaryLoanItemThread(email, locations)
+    thread1 = temporaryLoanItemThread(email, selectValues)
     thread1.start()
     return render_template('success.html')
   return render_template('index.html', form=tempLoanItemForm, message="", formName=formName)

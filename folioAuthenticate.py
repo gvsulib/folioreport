@@ -6,18 +6,22 @@ from config import okapiURL
 from config import tenant
 
 def login():
-  path = "/bl-users/login"
+  path = "/authn/login-with-expiry"
   headers = {'x-okapi-tenant': tenant}
   payload={'username': username, 'password': password}
-  parameters = {"expandPermissions":"true", "fullPermissions": "true"}
-
-  r = requests.post(okapiURL + path, params=parameters, headers=headers, json=payload)
+  
+  r = requests.post(okapiURL + path, headers=headers, json=payload)
 
   if r.status_code != 201:
     print("Login failed, status code: " + str(r.status_code) + " Error message: " + r.text)
     return 0
 
-  return r.headers.get("x-okapi-token")
+  return r.cookies["folioAccessToken"]
 
-
+def logout(token):
+  path = "/authn/logout"
+  headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
+  payload={}
+  
+  r = requests.post(okapiURL + path, headers=headers, json=payload)
 

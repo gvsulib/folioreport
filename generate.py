@@ -1,5 +1,5 @@
 import requests
-import login
+import folioAuthenticate
 import sys
 import sendEmail
 from config import okapiURL
@@ -30,7 +30,7 @@ retries = Retry(total=5, backoff_factor=0.1)
 session.mount('https://', HTTPAdapter(max_retries=retries))
 disallowed_characters = "''[]"
 
-token = login.login()
+token = folioAuthenticate.login()
 if token == 0:
   reportType = "All"
   error = "Cannot log into folio"
@@ -136,7 +136,7 @@ def generateReservesUse(emailAddr):
   session.mount('https://', HTTPAdapter(max_retries=retries))
   emailTo = emailAddr
   
-  token = login.login()
+  token = folioAuthenticate.login()
   if token == 0:
     error = "Unable to log in to folio."
     handleErrorAndQuit(error, emailTo, reportType)
@@ -497,7 +497,7 @@ def generateTemporaryLoanItem(emailAddr, locationList):
   retries = Retry(total=5, backoff_factor=0.1)
   session.mount('https://', HTTPAdapter(max_retries=retries))
 
-  token = login.login()
+  token = folioAuthenticate.login()
   if token == 0:
     error = "Unable to log in to folio."
     handleErrorAndQuit(error, emailTo, reportType)
