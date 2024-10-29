@@ -18,10 +18,10 @@ from generate import generateNoCheckout
 from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 
-def getLocationData(token):
+def getLocationData():
+  headers = folioAuthenticate.getNewHeaders()
   error = ""
   locationPath = "/locations?limit=2000&query=cql.allRecords%3D1%20sortby%20name"
-  headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
   r = requests.get(okapiURL + locationPath, headers=headers)
   if r.status_code != 200:
     error = "Cannot Get location code data from folio: " + str(r.status_code) + r.text
@@ -44,14 +44,10 @@ formDate = str(today.day) + "/" + str(today.month) + "/" + str(today.year)
 # Flask-WTF requires an encryption key - the string can be anything
 app = Flask(__name__)
 csrf = CSRFProtect(app)
-token = folioAuthenticate.login()
-if token == 0:
-  sys.exit()
-selectValues = getLocationData(token)
+selectValues = getLocationData()
 error = ""
 if type(selectValues) is str:
   error = selectValues
-folioAuthenticate.logout(token)
 
 #selectmultipleField will auto-fail validation and refuse to submit form
 #without this

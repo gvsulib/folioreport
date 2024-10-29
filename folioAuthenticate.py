@@ -1,9 +1,18 @@
 import requests
+import sys
+import sendEmail
+from config import emailFrom
 
 from config import username
 from config import password
 from config import okapiURL
 from config import tenant
+
+emailTo = "felkerk@gvsu.edu"
+
+def handleErrorAndQuit(msg, emailTo):
+  sendEmail.sendEmail(emailTo, emailFrom, msg, "Error Generating reports")
+  sys.exit()
 
 def login():
   path = "/authn/login-with-expiry"
@@ -13,15 +22,14 @@ def login():
   r = requests.post(okapiURL + path, headers=headers, json=payload)
 
   if r.status_code != 201:
-    print("Login failed, status code: " + str(r.status_code) + " Error message: " + r.text)
-    return 0
+    msg = "Login to folio failed, status code: " + str(r.status_code) + " Error message: " + r.text
+    handleErrorAndQuit(msg, emailTo)
 
   return r.cookies["folioAccessToken"]
 
-def logout(token):
-  path = "/authn/logout"
-  headers = {'x-okapi-tenant': tenant, 'x-okapi-token': token}
-  payload={}
-  
-  r = requests.post(okapiURL + path, headers=headers, json=payload)
+def getNewHeaders():
+  token = login()
+  return {'x-okapi-tenant': tenant, 'x-okapi-token': token}
+
+
 
