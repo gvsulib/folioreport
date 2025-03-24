@@ -29,7 +29,7 @@ def splitAttachment(attachment):
 def generateAttachmentArray(attachment, maxSize):
   attachmentArray = splitAttachment(attachment)
   while hasItemsAboveMaxSize(attachmentArray, maxSize):
-    print(str(len(attachmentArray)))
+
     for index, value in enumerate(attachmentArray):
       itemSize = int(getsizeof(value))
       if itemSize > maxSize:
@@ -56,7 +56,6 @@ def sendEmail(emailTo, fromAddr, messageBody, subject):
 
 
 def sendEmailWithAttachment(emailTo, fromAddr, subject, attachment):
-  print("Attempting to Send Email report to " + emailTo)
   filename = "report.csv"
   try:
     message = MIMEMultipart()
@@ -73,7 +72,6 @@ def sendEmailWithAttachment(emailTo, fromAddr, subject, attachment):
       current = 1
       for chunk in bodyList:
         newSubject = subject + " " + str(current) + " of " + str(length)
-        print(newSubject)
         sendEmailWithAttachment(emailTo, fromAddr, newSubject, chunk)
         current += 1
       return
@@ -89,6 +87,5 @@ def sendEmailWithAttachment(emailTo, fromAddr, subject, attachment):
   except Exception as e:
     msg = "Unable to send mail: " + str(e)
     subject = "Error: cannot email report"
-    print(msg)
     sendEmail(emailTo, fromAddr, msg, subject)
     return

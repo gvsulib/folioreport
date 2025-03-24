@@ -34,7 +34,6 @@ def getTitleforItem(itemid, session, email):
   headers = folioAuthenticate.getNewHeaders()
   url = okapiURL + "/inventory/items/" + itemid
   r = session.get(url, headers=headers)
-  print("Attempting to get title data from: " + url)
   if r.status_code != 200:
     error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
     handleErrorAndQuit(error, email, "Report generation")
@@ -43,7 +42,6 @@ def getTitleforItem(itemid, session, email):
 def getRecordById(id, path, session, email):
   headers = folioAuthenticate.getNewHeaders()
   url = okapiURL + path + id
-  print("Attempting to get record from: " + url + " with id: " + str(id))
   r = session.get(url, headers=headers)
   if r.status_code != 200:
     error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
@@ -62,12 +60,9 @@ def getRetentionDataFromHoldings(itemRecord, session, email):
 def getLocationsFromHoldings(holdingsId, session, email):
   headers = folioAuthenticate.getNewHeaders()
   url = okapiURL + "/holdings-storage/holdings/" + holdingsId
-  print(url)
-  print("Attempting to get holdings data from: " + url)
   r = session.get(url, headers=headers)
   if r.status_code != 200:
     error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
-    print(error)
     sendEmail.sendEmail(email, emailFrom, error, "Error Generating checkout report")
     sys.exit()
   json = r.json()
@@ -85,14 +80,10 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
 
   fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
 
-  print(str(fullQuery))
-
   r = session.get(okapiURL + path + fullQuery, headers=headers)
-  print("Attempting to get data from endpoint: " + path)
 
   if r.status_code != 200:
     error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
-    print(error)
     handleErrorAndQuit(error, email, "Reports app")
   
   json = r.json()[arrayName]
@@ -103,11 +94,9 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
   for item in json:
     itemList[item["id"]] = item
 
-
   while json:
     offset += 100
     fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
-    print("attempting to fetch next 100 entries from " + str(offset))
     r = session.get(okapiURL + path + fullQuery, headers=headers)
 
     #request new auth token if neccessary
@@ -119,8 +108,6 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
     if len(json) >= 1:
       for item in json:
         itemList[item["id"]] = item
-    else:
-      print("No more data to fetch")
 
   list = [*itemList.values()]
 
@@ -128,23 +115,16 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
 
 def generateReservesUse(email):
   reportType = "Reserves Use"
-  print("Attempting to get course and instructor data")
   result = getAllFromEndPoint("/coursereserves/courses", "", "courses", session, email)
   if len(result) < 1:
     msg = "No reserves data found in reserves endpoint"
     handleErrorAndQuit(msg, email, reportType)
-  print("instructor and course data retrieved")
-  #extract term dates from courses object-they should all have the same term
-  print("extracting start and end dates")
+
   term = result[0]["courseListingObject"]["termObject"]
 
   startDate = term["startDate"]
 
-  print("start date: " + startDate)
-
   endDate = term["endDate"]
-
-  print("end date: " + endDate)
 
   #extract course names from courses data
   courses = []
@@ -159,10 +139,8 @@ def generateReservesUse(email):
       "instructor": name,
       "courseListingId":entry["courseListingId"]
       })
-  print("Getting location data")
 
   result = getAllFromEndPoint("/locations", "", "locations", session, email)
-  print("Location data retrieved")
 
   #format location data to list with id number as key
   locations = {}
@@ -170,13 +148,11 @@ def generateReservesUse(email):
     locations.update({entry["id"]: entry["name"]})
 
   #get start and end dates from reserves data
-  print("Getting listing of reserve items")
   result = getAllFromEndPoint("/coursereserves/reserves", "", "reserves", session, email)
 
   #combine course and item data into single entries
   reserveItems = []
   for entry in result:
-    print("entry" + str(entry))
     location = ""
     if "temporaryLocationId" in entry["copiedItem"]:
       location = entry["copiedItem"]["temporaryLocationId"]
@@ -202,10 +178,6 @@ def generateReservesUse(email):
 
     reserveItems.append(itemEntry)
 
-  print("Reserve items retrieved")
-
-  print("Attempting to get data from circ logs for the time period: " + startDate + " to " + endDate)
-
   logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
 
   #get circ log data for date ranges
@@ -213,13 +185,10 @@ def generateReservesUse(email):
   if len(result) < 1:
     error="No circulation data found for date ranges provided"
     handleErrorAndQuit(error, email, reportType)
-  print("Data from circ logs retrieved")
   itemIdList = []
-  print("Counting circ log checkouts for the time period: " + startDate + " to " + endDate)
   for entry in result:
     itemIdList.append(entry["items"][0]["itemId"])
   count = collections.Counter(itemIdList)
-  print("collating data for final report to CSV")
   itemData = "Item id, title, Barcode, location, course name, course code, instructor, folio checkout events\n"
 
   for item in reserveItems:
@@ -237,10 +206,7 @@ def generateReservesUse(email):
       x.append("0")
     itemData = itemData + ",".join(x) + "\n"
 
-  print("CSV data ready")
   sendEmail.sendEmailWithAttachment(email, emailFrom, "Checkout Report", itemData)
-  print('Reserves Report sent')
-  print("Done, closing down")
 
 def constructLocationQuery(locationList):
   if len(locationList) == 0:
@@ -272,11 +238,10 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, c
   if callNumberStem != "":
     callNumberQuery = ' and effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
   itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
-  #print("item query: " + itemQueryString)
+
   r = session.get(okapiURL + itemPath + itemQueryString, headers=headers)
   if r.status_code != 200:
     error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
-    print(error)
     sendEmail.sendEmail(email, emailFrom, error, "Error Generating checkout report")
     return -1
   else:
@@ -358,8 +323,6 @@ def generateInventoryReport(cutoffDate, locationList, email, callNumberStem):
 
   offset = 0
 
-  print("attempting to get inventory item data")
-
   itemResults = getItemRecords(email, offset, okapiURL, itemPath, limit, locationList, callNumberStem, True, cutoffDate, session)
   
   if itemResults == -1:
@@ -373,18 +336,11 @@ def generateInventoryReport(cutoffDate, locationList, email, callNumberStem):
       if item["id"] not in itemIds:
         itemIds.append(item["id"])
         if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True)):
-          print("logging data for item " + item["id"])
           itemData = itemData + generateInventoryEntry(item)
     offset += 100
-    print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(email, offset, okapiURL, itemPath, limit, locationList, callNumberStem, True, cutoffDate, session)
-  
-  print("CSV data ready")
 
   sendEmail.sendEmailWithAttachment(email, emailFrom, "Inventory Report", itemData)
-  print('Report sent')
-  print("Done, closing down")
-
 
 def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppressed, callNumberStem): 
 
@@ -396,15 +352,10 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
     locationList[index] = location
   
   logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
-  
-  print("attempting to get circ log data")
  
   checkoutRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", session, email)
 
-  print(str(len(checkoutRecords)) + " records retrieved from circ log for given dates")
-
   checkoutItemIdList = []
-  print("Counting circ log checkouts for the time period")
 
   for entry in checkoutRecords:
     checkoutItemIdList.append(entry["items"][0]["itemId"])
@@ -414,14 +365,11 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
   checkoutCount = collections.Counter(checkoutItemIdList)
 
   del checkoutItemIdList
-  print("Check-out events counted")
-  print("Attempting to get check-in events for the time period")
+
   logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20in*%22%29%29%20sortby%20date%2Fsort.descending"
   
   checkinRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", session, email)
-  print(str(len(checkinRecords)) + " checkin records retrieved from circ log for given dates")
 
-  print("filtering for in-house checkin events")
   checkinItemIdList = []
   
   for record in checkinRecords:
@@ -435,13 +383,13 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
 
   del checkinItemIdList
   offset = 0
-  print("Attempting to get item data from inventory")
+
   limitItem = "100"
   itemResults = getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, callNumberStem, False, None, session)
   if itemResults == -1:
     error = "Cannot get item data from inventory"
     handleErrorAndQuit(error, email, reportType)
-  print("formatting report")
+
   itemData = "Item id, Location, Call Number, Title, Barcode, Created Date, folio Checkouts, Sierra Checkouts 2011 to 2021, in-house use, Retention Policy\n"
   itemIds = []
 
@@ -451,30 +399,22 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
         itemIds.append(item["id"])
         if (("discoverySuppress" not in item) or (item["discoverySuppress"] != True) or (item["discoverySuppress"] == True and includeSuppressed == True)):
           retentionData = getRetentionDataFromHoldings(item, session, email)
-          print("logging checkout data for item " + item["id"])
           itemData = itemData + generateCheckoutEntry(item, checkoutCount, inhouseUseCount, retentionData)
     offset += 100
-    print("Attempting to get next 100 records from offset " + str(offset))
     itemResults = getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, callNumberStem, False, None, session)
-  print("CSV data ready")
+
   sendEmail.sendEmailWithAttachment(email, emailFrom, "Checkout Report", itemData)
-  print('Report sent')
-  print("Done, closing down")
 
 def generateTemporaryLoanItem(email, locationList):
   locationNames = {}
   for entry in locationList:
     locationNames[entry[0][0]] = entry[1]
-  print(str(locationNames))
-  print("starting")
+
   reportType="Item records with temporary loans"
   loanTypes = {"83eaaffa-6adf-4213-a154-33c53e3a550a":"3 hour reserve",
                "721d13ca-b5ae-4f63-8f75-22fbbb604058":"1 Week Reserve",
                "fda8ff4b-a389-4c15-955f-c10f0bc27b31":"24 Hour Course Reserve"}
   
-
-  print("Attempting to retrieve item records with temporary loan types")
-
   path = "/item-storage/items"
 
   query = "&query=(temporaryLoanTypeId==83eaaffa-6adf-4213-a154-33c53e3a550a OR temporaryLoanTypeId==721d13ca-b5ae-4f63-8f75-22fbbb604058 OR temporaryLoanTypeId==fda8ff4b-a389-4c15-955f-c10f0bc27b31)"
@@ -485,12 +425,12 @@ def generateTemporaryLoanItem(email, locationList):
   if len(itemRecords) < 1:
     msg = "No item records with required loan types found."
     handleErrorAndQuit(msg, email, reportType)
-  print("Item records retrieved, parsing")
+
   csv = "title,barcode,loantype,templocation,permlocation,effectivelocation\n"
   for record in itemRecords:
     title = "\"" + getTitleforItem(record["id"], session, email) + "\""
     locations = getLocationsFromHoldings(record["holdingsRecordId"], session, email)
-    print(str(locations))
+
     permanent = "\"" + locationNames[locations["Permanent"]] + "\""
     effective = "\"" + locationNames[locations["Effective"]] + "\""
     if "Temporary" in locations:
@@ -504,11 +444,7 @@ def generateTemporaryLoanItem(email, locationList):
     line = ",".join(lineTuple) + "\n"
     csv += line
 
-  print(csv)
-  print("Parsing done, attempting to send file")
   sendEmail.sendEmailWithAttachment(email, emailFrom, "Items on Temporary Loan Report", csv)
-  print('Report sent')
-  print("Done, closing down")
 
 def generateNoCheckout(email, location, date):
   reportType="No checkout report"
@@ -518,18 +454,14 @@ def generateNoCheckout(email, location, date):
   
   locationEntry = getRecordById(location, locationsPath + "/", session, email)
   locationName = locationEntry["name"]
-  print("Getting all available items in " + locationName + " with updated date later than " + date)
   itemQuery = "&query=(status.name==\"Available\" and effectiveLocationId==" + location + " and metadata.updatedDate < " + date + ")"
 
   itemResults = getAllFromEndPoint(itemPath, itemQuery, "items", session, email)
-
-  print(str(len(itemResults)) + " items retrieved for the criteria, creating CSV")
-  
+ 
   itemCSV = "itemId,Barcode,callNumber,location,status,title\n"
   for item in itemResults:
     id = item["id"]
 
-    print("Item with id " + id + " has no modifications on or after cutoff date, including")
     barcode = "none"
     callNumber = "none"
     callNumberComponents = item["effectiveCallNumberComponents"]
@@ -541,10 +473,9 @@ def generateNoCheckout(email, location, date):
     status = item["status"]["name"]
     line = id + "," + barcode + "," + callNumber + "," + locationName + "," + status + "," + title + "\n"
     itemCSV += line
-  print("Parsing done, attempting to send file")
+
   sendEmail.sendEmailWithAttachment(email, emailFrom, "No Checkout event report", itemCSV)
-  print('Report sent')
-  print("Done, closing down")
+
 
 
   

@@ -104,9 +104,7 @@ class noCheckoutThread (Thread):
     self.location = location
     self.date = date
   def run (self):
-    print("Starting no checkout report")
     generateNoCheckout(self.emailAddr, self.location, self.date)
-    print("Finished, Shutting Down")
 
 class temporaryLoanItemThread (Thread):
   def __init__(self, emailAddr, locations):
@@ -114,18 +112,14 @@ class temporaryLoanItemThread (Thread):
     self.emailAddr = emailAddr
     self.locations = locations
   def run (self):
-    print("Starting temporary loan item report")
     generateTemporaryLoanItem(self.emailAddr, self.locations)
-    print("Finished, Shutting Down")
 
 class reservesThread (Thread):
   def __init__(self, emailAddr):
       Thread.__init__(self)
       self.emailAddr = emailAddr
   def run (self):
-    print("Starting reserves report")
     generateReservesUse(self.emailAddr)
-    print("Finished, Shutting Down")
 
 class inventoryThread (Thread):
    def __init__(self, cutoffDate, locationId, emailAddr, callNumberStem):
@@ -135,9 +129,7 @@ class inventoryThread (Thread):
       self.emailAddr = emailAddr
       self.callNumberStem = callNumberStem
    def run(self):
-      print("Starting inventory report")
       generateInventoryReport(self.cutoffDate, self.locationId, self.emailAddr, self.callNumberStem)
-      print("finished, shutting down")
 
 class myThread (Thread):
    def __init__(self, startDate, endDate, locationId, emailAddr, includeSuppressed, callNumberStem):
@@ -149,9 +141,7 @@ class myThread (Thread):
       self.includeSuppressed = includeSuppressed
       self.callNumberStem = callNumberStem
    def run(self):
-      print("Starting checkout report")
       generateCheckoutReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
-      print("finished, shutting down")
 
 @app.route('/login', methods=['GET', 'POST'])
 def sysLogin():
