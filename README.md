@@ -11,7 +11,7 @@ The reporting app is a program written in python using the flask web framework (
 
 ## Accessing the reports app
 
-Accessign the app requires the URL to the app on our server as well as a password.  These can be obtained from the Head of Systems.
+Accessing the app requires the URL to the app on our server as well as a password.  These can be obtained from the Head of Systems.
 
 ## using the app
 
@@ -98,3 +98,18 @@ Like the reserve activity report, this will only show you items that currently h
 **templocation:**  These items also tend to have temporary locations because they are on reserve.  This field tells you what that location is currently set to.  
 **permlocation:** the item's permanent location  
 **effectivelocation:**  the item's Current effective location.  This will be the temporary location if one is set.  Otherwise it should be the item's permanent location  
+
+## No checkout report
+
+This report will scan for items in specific area(s) that are currently listed as "Available" and have no checkout activity since the cut-off date specified.  This is useful for weeding projects.
+
+You may not choose multiple locations for this report.  If you need that, you will need to run multiple reports.
+
+By default, the form is loaded with the date we adopted Folio.  Because checkout data from before that date is stored in text fields in the item record, it's not searchable, and so data from that time is not available from this report.
+
+### No checkout report fields
+
+**itemId:** the UUID of the item record in Folio	
+**Barcode,	callNumber,	location, title :** Self-explanatory
+**status:** Curreent status of the item (should be "available"	title![image](https://github.com/user-attachments/assets/4482623f-9b56-4bdd-ad43-51189fa49b9a)
+
