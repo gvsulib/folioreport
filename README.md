@@ -1,7 +1,7 @@
 # Folio Reporting App
 
 ## Overview
-The reporting app is a program written in python using the flask web framework (https://flask.palletsprojects.com/en/stable/).  It's designed to be run over the Folio (https://folio.org/) abck-end APIs, especially the ones in mod-inventory (https://github.com/folio-org/mod-inventory) and mod-inventory-storage (https://github.com/folio-org/mod-inventory-storage).  The app's function is to fill a variety of reporting needs not currently addressed by Folio, including:
+The reporting app is a program written in python using the flask web framework (https://flask.palletsprojects.com/en/stable/).  It's designed to be run over the Folio (https://folio.org/) back-end APIs, especially the ones in mod-inventory (https://github.com/folio-org/mod-inventory) and mod-inventory-storage (https://github.com/folio-org/mod-inventory-storage).  The app's function is to fill a variety of reporting needs not currently addressed by Folio, including:
 
 1. Checkout reports based on call number, date and location, typically used for weeding projects
 2. Checkout reports for physical reserve items, often used to persuade instructors to do virtual reserves (physical reserves tend to get very low use)
@@ -11,9 +11,9 @@ The reporting app is a program written in python using the flask web framework (
 
 ## Accessing the reports app
 
-Accessing the app requires the URL to the app on our server as well as a password.  These can be obtained from the Head of Systems.
+Accessing the app requires the URL to the app on our server as well as a password.  These can be obtained from the Head of Systems and Discovery.
 
-## using the app
+## Using the app
 
 Once you've accessed the app and logged in, you'll be presented with a screen allowing you to choose the type of report to run.  Choose the report you want to run, and you'll be presented with an options screen, which varies depending on the type of report you want to run.
 
@@ -23,9 +23,11 @@ If you do not see your report, check your spam folder-these are system-generated
 
 If no items are found in the system that match your report criteria, the resulting report will be blank.  If you are getting blank reports, tweak your report criteria.
 
-## the types of reports explained
+## Types of reports explained
 
 ### Checkout report
+
+The checkout report generates a list of items and the number of times they've been checked out in the time period specified.
 
 The checkout report allows you to limit the report based on the time period you want to see checkout activity for, location of the item, and/or call number stem.  
 
@@ -35,13 +37,13 @@ You must enter at least one location, OR a call number stem.  You do not have to
 
 You can choose multiple locations by using shift or command click (depending on wether you're using a Mac or PC).
 
-The screen pre-loads with the time constraints set to the date we adopted folio to the present day.  BE aware thet the more locations you choose, or wider the date range, the longer the report will take to run.  You are advised to split up large reports by year and/or location.
+The screen pre-loads with the time constraints set to the date we adopted Folio to the present day.  Be aware thet the more locations you choose, or wider the date range, the longer the report will take to run.  You are advised to split up large reports by year and/or location.
 
-by default, suppressed records are not included in the report.  There is a checkbox you can use to tell the app to include them.
+By default, suppressed records are not included in the report.  There is a checkbox you can use to tell the app to include them.
 
-#### checkout report fields
+#### Checkout report fields
 
-**itemId:**  the UUID of the item record in Folio  
+**ItemId:**  the UUID of the item record in Folio  
 **Location:** the item's permanent location  
 **Call Number:** the item's call number  
 **Title:** self-explanatory  
@@ -49,8 +51,8 @@ by default, suppressed records are not included in the report.  There is a check
 **Created date:** the date and time the item record was created  
 **Folio Checkouts:** the number of checkout events that took place during the time window you specified.  If there were none, the number will be 0.  
 **Sierra Checkouts 2011 to 2021:**  Data on item checkouts for this item in Sierra, our previous ILS. These are stored in the item notes field, and are included on every report generated.  Because they are text, they can't be included/excluded based on date, which is why they're included on every report run.  
-**in-house use:**  any stats on in-house use for this item, if they exist for the item and time period specified  
-**retention policy:** links/notes regarding retention policies for this item-this is useful if you're using this report for weeding  
+**In-house use:**  any stats on in-house use for this item, if they exist for the item and time period specified  
+**Retention policy:** links/notes regarding retention policies for this item-this is useful if you're using this report for weeding  
 
 ## Reserves use report
 
@@ -60,20 +62,20 @@ This report can ONLY give you use data for currently-reserved physical items.
 
 ### Reserves report fields
 
-**itemId:**  the UUID of the item record in Folio  
+**ItemId:**  the UUID of the item record in Folio  
 **Location:** the item's permanent location  
 **Barcode:** the item's barcode  
 **Title:** self-explanatory  
 **Course name:** the name of the course the item is on reserve for  
 **Instructor name:** the name of the instructor who put the item on reserve  
 **Course code:** the course catalog code for the course the item is on reserve for  
-**folio checkout events:** thenumber of times the item has been checked out so far this semester  
+**Folio checkout events:** thenumber of times the item has been checked out so far this semester  
 
 ## Inventory Report
 
 The inventory report is used to locate lost books or other physical items.  The report requires either a call number stem OR one or more locations, similar to the checkout report.
 
-The form also asks for a cut-off date.  The report will contain items that DO NOT have any checkin events AFTER that date.  The idea is that when staff are starting to do a shelf inventory, they note the date they start, then they go through the shelves and check-in any items on the shelf.  Any items that should be in that area that DON'T have check-in activity since that date are not on the shelf.
+The form also asks for a cut-off date.  The report will contain items that DO NOT have any check-in events AFTER that date.  The idea is that when staff are starting to do a shelf inventory, they note the date they start, then they go through the shelves and check-in any items on the shelf.  Any items that should be in that area that DON'T have check-in activity since that date are not on the shelf.
 
 ### Inventory Report Fields
 
@@ -101,7 +103,7 @@ Like the reserve activity report, this will only show you items that currently h
 
 ## No checkout report
 
-This report will scan for items in specific area(s) that are currently listed as "Available" and have no checkout activity since the cut-off date specified.  This is useful for weeding projects.
+This report will scan for items in specific area that are currently listed as "Available" and have no checkout activity since the cut-off date specified.  This is useful for weeding projects.
 
 You may not choose multiple locations for this report.  If you need that, you will need to run multiple reports.
 
@@ -111,5 +113,5 @@ By default, the form is loaded with the date we adopted Folio.  Because checkout
 
 **itemId:** the UUID of the item record in Folio	
 **Barcode,	callNumber,	location, title :** Self-explanatory
-**status:** Curreent status of the item (should be "available"	title![image](https://github.com/user-attachments/assets/4482623f-9b56-4bdd-ad43-51189fa49b9a)
+**status:** Curreent status of the item (should be "available")
 
