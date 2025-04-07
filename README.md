@@ -111,7 +111,7 @@ By default, the form is loaded with the date we adopted Folio.  Because checkout
 
 ### No checkout report fields
 
-**itemId:** the UUID of the item record in Folio	
-**Barcode,	callNumber,	location, title :** Self-explanatory
-**status:** Curreent status of the item (should be "available")
+**itemId:** the UUID of the item record in Folio  
+**Barcode,	callNumber,	location, title :** Self-explanatory  
+**status:** Curreent status of the item (should be "available")  
 
