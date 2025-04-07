@@ -41,16 +41,16 @@ by default, suppressed records are not included in the report.  There is a check
 
 #### checkout report fields
 
-**itemId:**  the UUID of the item record in Folio
-**Location:** the item's permanent location
-**Call Number:** the item's call number
-**Title:** self-explanatory
-**Barcode:** the assigned barcode
-**Created date:** the date and time the item record was created
-**Folio Checkouts:** the number of checkout events that took place during the time window you specified.  If there were none, the number will be 0.
-**Sierra Checkouts 2011 to 2021:**  Data on item checkouts for this item in Sierra, our previous ILS. These are stored in the item notes field, and are included on every report generated.  Because they are text, they can't be included/excluded based on date, which is why they're included on every report run.
-**in-house use:**  any stats on in-house use for this item, if they exist for the item and time period specified
-**retention policy:** links/notes regarding retention policies for this item-this is useful if you're using this report for weeding.
+**itemId:**  the UUID of the item record in Folio  
+**Location:** the item's permanent location  
+**Call Number:** the item's call number  
+**Title:** self-explanatory  
+**Barcode:** the assigned barcode  
+**Created date:** the date and time the item record was created  
+**Folio Checkouts:** the number of checkout events that took place during the time window you specified.  If there were none, the number will be 0.  
+**Sierra Checkouts 2011 to 2021:**  Data on item checkouts for this item in Sierra, our previous ILS. These are stored in the item notes field, and are included on every report generated.  Because they are text, they can't be included/excluded based on date, which is why they're included on every report run.  
+**in-house use:**  any stats on in-house use for this item, if they exist for the item and time period specified  
+**retention policy:** links/notes regarding retention policies for this item-this is useful if you're using this report for weeding  
 
 ## Reserves use report
 
@@ -60,14 +60,14 @@ This report can ONLY give you use data for currently-reserved physical items.
 
 ### Reserves report fields
 
-**itemId:**  the UUID of the item record in Folio
-**Location:** the item's permanent location
-**Barcode:** the item's barcode
-**Title:** self-explanatory
-**Course name:** the name of the course the item is on reserve for
-**Instructor name:** the name of the instructor who put the item on reserve
-**Course code:** the course catalog code for the course the item is on reserve for
-**folio checkout events:** thenumber of times the item has been checked out so far this semester.
+**itemId:**  the UUID of the item record in Folio  
+**Location:** the item's permanent location  
+**Barcode:** the item's barcode  
+**Title:** self-explanatory  
+**Course name:** the name of the course the item is on reserve for  
+**Instructor name:** the name of the instructor who put the item on reserve  
+**Course code:** the course catalog code for the course the item is on reserve for  
+**folio checkout events:** thenumber of times the item has been checked out so far this semester  
 
 ## Inventory Report
 
@@ -79,11 +79,11 @@ The form also asks for a cut-off date.  The report will contain items that DO NO
 
 Again, items showing in this report HAVE NOT had any CHECK-IN events since the specified cut-off date.
 
-**Item id:** the UUID of the item record in Folio	 
-**Location:** location of the item
-**Call Number, Title, Barcode:**	Should require no explanation 
-**Status:** The current status of this item in Folio-available, checked-out, etc.	 
-**Status Update Date:** The date/time the item was moved to the current status.  If the item has never been checked out, this will match the date the item record was created in the system.
+**Item id:** the UUID of the item record in Folio  
+**Location:** location of the item  
+**Call Number, Title, Barcode:**	Should require no explanation  
+**Status:** The current status of this item in Folio-available, checked-out, etc.  
+**Status Update Date:** The date/time the item was moved to the current status.  If the item has never been checked out, this will match the date the item record was created in the system  
 
 ## Temporary Loan Report
 
@@ -93,8 +93,8 @@ Like the reserve activity report, this will only show you items that currently h
 
 ### Temporary Loan Report Fields
 
-**title &	barcode:** Should be self-explanatory	
-**loantype:** the currently set temporary loan type	
-**templocation:**  These items also tend to have temporary locations because they are on reserve.  This field tells you what that location is currently set to.
-**permlocation:** the item's permanent location
-**effectivelocation:**  the item's Current effective location.  This will be the temporary location if one is set.  Otherwise it should be the item's permanent location.
+**title &	barcode:** Should be self-explanatory  	
+**loantype:** the currently set temporary loan type  
+**templocation:**  These items also tend to have temporary locations because they are on reserve.  This field tells you what that location is currently set to.  
+**permlocation:** the item's permanent location  
+**effectivelocation:**  the item's Current effective location.  This will be the temporary location if one is set.  Otherwise it should be the item's permanent location  
