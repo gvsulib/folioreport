@@ -35,7 +35,7 @@ def getTitleforItem(itemid, session, email):
   url = okapiURL + "/inventory/items/" + itemid
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
+    error = "Could not get data from endpoint:" + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
     handleErrorAndQuit(error, email, "Report generation")
   return r.json()["title"]
 
@@ -44,7 +44,7 @@ def getRecordById(id, path, session, email):
   url = okapiURL + path + id
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
+    error = "Could not get data from endpoint:" + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
     handleErrorAndQuit(error, email, "Report generation")
   return r.json()
 
@@ -62,7 +62,7 @@ def getLocationsFromHoldings(holdingsId, session, email):
   url = okapiURL + "/holdings-storage/holdings/" + holdingsId
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
+    error = "Could not get data from endpoint: " + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
     sendEmail.sendEmail(email, emailFrom, error, "Error Generating checkout report")
     sys.exit()
   json = r.json()
@@ -79,11 +79,11 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
   offset = 0
 
   fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
-
-  r = session.get(okapiURL + path + fullQuery, headers=headers)
+  url = okapiURL + path + fullQuery
+  r = session.get(url, headers=headers)
 
   if r.status_code != 200:
-    error = "Could not get data from endpoint, status code: " + str(r.status_code) + " Error message:" + r.text
+    error = "Could not get data from endpoint: " + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
     handleErrorAndQuit(error, email, "Reports app")
   
   json = r.json()[arrayName]
@@ -238,10 +238,10 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, c
   if callNumberStem != "":
     callNumberQuery = ' and effectiveCallNumberComponents.callNumber==("' + callNumberStem + '*")'
   itemQueryString = '?limit=' + limitItem + '&offset=' + str(offset) + '&query=(' + locationQuery + callNumberQuery + cutoffQuery + statusQuery + ') sortby title'
-
-  r = session.get(okapiURL + itemPath + itemQueryString, headers=headers)
+  url = okapiURL + itemPath + itemQueryString
+  r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get item record data, status code: " + str(r.status_code) + " Error message:" + r.text
+    error = "Could not get item record data from endpoint:" +  url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
     sendEmail.sendEmail(email, emailFrom, error, "Error Generating checkout report")
     return -1
   else:
