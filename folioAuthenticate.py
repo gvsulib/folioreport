@@ -2,13 +2,12 @@ import requests
 import sys
 import sendEmail
 from config import emailFrom
-
+from config import techSupportEmail
 from config import username
 from config import password
 from config import okapiURL
 from config import tenant
 
-emailTo = "felkerk@gvsu.edu"
 
 def handleErrorAndQuit(msg, emailTo):
   sendEmail.sendEmail(emailTo, emailFrom, msg, "Error Generating reports")
@@ -23,7 +22,7 @@ def login():
 
   if r.status_code != 201:
     msg = "Login to folio failed, status code: " + str(r.status_code) + " Error message: " + r.text
-    handleErrorAndQuit(msg, emailTo)
+    handleErrorAndQuit(msg, techSupportEmail)
 
   return r.cookies["folioAccessToken"]
 
