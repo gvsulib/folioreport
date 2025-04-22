@@ -8,7 +8,7 @@ from config import emailFrom
 import collections
 from requests.adapters import HTTPAdapter, Retry
 
-techSupportEmail = "felkerk@gvsu.edu"
+techSupportEmail = "rothpa@gvsu.edu"
 
 def handleErrorAndQuit(msg, email, reportType):
   sendEmail.sendEmail(techSupportEmail, emailFrom, msg, "Error Generating " + reportType + " Report")
