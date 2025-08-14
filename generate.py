@@ -7,6 +7,7 @@ from config import tenant
 from config import emailFrom
 from config import techSupportEmail
 import collections
+import re
 from requests.adapters import HTTPAdapter, Retry
 
 handleError = errorHandler()
@@ -24,14 +25,14 @@ locationsPath = "/locations"
 session = requests.Session()
 retries = Retry(total=5, backoff_factor=0.1)
 session.mount('https://', HTTPAdapter(max_retries=retries))
-disallowed_characters = "''[]"
 
 def cleanLocationList(locationList):
+  cleanList = []
+  temp = ""
   for index, location in enumerate(locationList):
-    for character in disallowed_characters:
-      location = location.replace(character, "")
-  locationList[index] = location
-  return locationList
+    temp = re.sub(r"[\'\'\[\]]", "", location)
+    cleanList.append(temp)
+  return cleanList
 
 def concatenateLocations(locationList):
   locationString = ""
@@ -44,8 +45,7 @@ def getTitleforItem(itemid, session, email):
   url = okapiURL + "/inventory/items/" + itemid
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get data from endpoint:" + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
-    handleError.handleErrorAndQuit(error)
+    handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
   
   return r.json()["title"]
 
@@ -54,8 +54,7 @@ def getRecordById(id, path, session, email):
   url = okapiURL + path + id
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get data from endpoint:" + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
-    handleError.handleErrorAndQuit(error)
+    handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
   return r.json()
 
 def getRetentionDataFromHoldings(itemRecord, session, email):
@@ -72,8 +71,7 @@ def getLocationsFromHoldings(holdingsId, session, email):
   url = okapiURL + "/holdings-storage/holdings/" + holdingsId
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get data from endpoint: " + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
-    handleError.handleErrorAndQuit(error)
+    handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
   json = r.json()
   locations = {}
   locations["Permanent"] = json["permanentLocationId"]
@@ -92,8 +90,7 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
   r = session.get(url, headers=headers)
 
   if r.status_code != 200:
-    error = "Could not get data from endpoint: " + url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
-    handleError.handleErrorAndQuit(error)
+    handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
   
   json = r.json()[arrayName]
 
@@ -132,7 +129,7 @@ def generateReservesUse(email):
   
   if len(result) < 1:
     msg = "No reserves data found in reserves endpoint"
-    handleError.handleErrorAndQuit(msg)
+    handleError.handleErrorAndQuitNoTechEmail(msg)
 
   term = result[0]["courseListingObject"]["termObject"]
 
@@ -199,7 +196,7 @@ def generateReservesUse(email):
   
   if len(result) < 1:
     error="No circulation data found for date ranges provided"
-    handleError.handleErrorAndQuit(error)
+    handleError.handleErrorAndQuitNoTechEmail(error)
 
   itemIdList = []
   for entry in result:
@@ -257,8 +254,8 @@ def getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, c
   url = okapiURL + itemPath + itemQueryString
   r = session.get(url, headers=headers)
   if r.status_code != 200:
-    error = "Could not get item record data from endpoint:" +  url + "\n, status code: " + str(r.status_code) + "\n Error message:" + r.text
-    errorHandler.handleErrorAndQuit(error)
+    handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
+  
 
   json = r.json()
   return json["items"]
@@ -356,7 +353,6 @@ def generateInventoryReport(cutoffDate, locationList, email, callNumberStem):
   sendEmail.sendEmailWithAttachment(email, emailFrom, "Inventory Report", itemData)
 
 def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppressed, callNumberStem): 
-
   reportType="Item use report"
   locationList = cleanLocationList(locationList)
 
@@ -443,7 +439,7 @@ def generateTemporaryLoanItem(email, locationList):
 
   if len(itemRecords) < 1:
     msg = "No item records with required loan types found."
-    handleError.handleErrorAndQuit(msg)
+    handleError.handleErrorAndQuitNoTechEmail(msg)
 
   csv = "title,barcode,loantype,templocation,permlocation,effectivelocation\n"
   for record in itemRecords:

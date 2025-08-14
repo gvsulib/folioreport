@@ -20,6 +20,9 @@ class errorHandler:
   def setReportType(self, type):
     self.reportType = type
 
+  def constructHTTPErrorMessage(url, response):
+    return "Could not get data from endpoint:" +  url + "\n status code: " + str(response.status_code) + "\n Error message:" + response.text
+
   def sendEmail(self, subject, content, emailTo):
   
     message = EmailMessage()
@@ -43,13 +46,18 @@ class errorHandler:
 
     if self.params is not None:
       body += "Report Parameters: \n\n"
-      for key, value in self.params:
+      for key, value in self.params.items():
         body += key + ":" + value + "\n"
 
     return body
 
+  def handleErrorAndQuitNoTechEmail(self, errorMsg):
+    mailBody = self.composeMessageBody(errorMsg)
+    subject = "Error running folio report"
+    self.sendEmail(subject, mailBody, self.userEmail)
+    sys.exit()
+
   def handleErrorAndQuit(self, errorMsg):
-    print("getting here")
     mailBody = self.composeMessageBody(errorMsg)
     subject = "Error running folio report"
     self.sendEmail(subject, mailBody, self.techSupportEmail)
