@@ -20,7 +20,7 @@ class errorHandler:
   def setReportType(self, type):
     self.reportType = type
 
-  def constructHTTPErrorMessage(url, response):
+  def constructHTTPErrorMessage(self, url, response):
     return "Could not get data from endpoint:" +  url + "\n status code: " + str(response.status_code) + "\n Error message:" + response.text
 
   def sendEmail(self, subject, content, emailTo):
@@ -55,6 +55,12 @@ class errorHandler:
     mailBody = self.composeMessageBody(errorMsg)
     subject = "Error running folio report"
     self.sendEmail(subject, mailBody, self.userEmail)
+    sys.exit()
+
+  def handleErrorAndQuitNoUserEmail(self, errorMsg):
+    mailBody = self.composeMessageBody(errorMsg)
+    subject = "Error running folio report"
+    self.sendEmail(subject, mailBody, self.techSupportEmail)
     sys.exit()
 
   def handleErrorAndQuit(self, errorMsg):

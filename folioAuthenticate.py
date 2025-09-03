@@ -8,15 +8,11 @@ from config import username
 from config import password
 from config import okapiURL
 from config import tenant
-
-
-
-
-def handleErrorAndQuit(msg, emailTo):
-  sendEmail.sendEmail(emailTo, emailFrom, msg, "Error Generating reports")
-  sys.exit()
+from errorHandler import errorHandler
 
 def login():
+  handleError = errorHandler()
+  handleError.setReportType("Folio API Login Error")
   path = "/authn/login-with-expiry"
   headers = {'x-okapi-tenant': tenant}
   payload={'username': username, 'password': password}
@@ -24,8 +20,7 @@ def login():
   r = requests.post(okapiURL + path, headers=headers, json=payload)
 
   if r.status_code != 201:
-    msg = "Login to folio failed, status code: " + str(r.status_code) + " Error message: " + r.text
-    handleErrorAndQuit(msg, techSupportEmail)
+    handleError.handleErrorAndQuitNoUserEmail(handleError.constructHTTPErrorMessage(okapiURL, r))
 
   return r.cookies["folioAccessToken"]
 

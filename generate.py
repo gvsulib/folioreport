@@ -37,7 +37,7 @@ def cleanLocationList(locationList):
 def concatenateLocations(locationList):
   locationString = ""
   for index,location in enumerate(locationList):
-    locationString += location + ","
+    locationString += location + " "
   return locationString
 
 def getTitleforItem(itemid, session, email):
@@ -464,8 +464,7 @@ def generateTemporaryLoanItem(email, locationList):
 def generateNoCheckout(email, location, date):
   reportType="No checkout report"
   
-  for character in disallowed_characters:
-    location = location.replace(character, "")
+  location = re.sub(r"[\'\'\[\]]", "", location)
 
   handleError.setReportType(reportType)
   handleError.setUserEmail(email)
