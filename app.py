@@ -10,6 +10,7 @@ from wtforms.fields.html5 import DateField, EmailField
 from wtforms import SubmitField, SelectMultipleField, SelectField, PasswordField, BooleanField, TextField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
+from generate import generateMelOverdue
 from generate import generateTemporaryLoanItem
 from generate import generateCheckoutReport
 from generate import generateReservesUse
@@ -71,6 +72,10 @@ class temporaryLoanItemReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   submit = SubmitField('Submit')
 
+class melOverdueReportForm(FlaskForm):
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  submit = SubmitField('Submit')
+
 class authenticationForm(FlaskForm):
   password = PasswordField('Enter Password: ', validators=[InputRequired()])
   submit = SubmitField('Submit')
@@ -113,6 +118,13 @@ class temporaryLoanItemThread (Thread):
     self.locations = locations
   def run (self):
     generateTemporaryLoanItem(self.emailAddr, self.locations)
+
+class melOverdueThread (Thread):
+  def __init__(self, emailAddr):
+    Thread.__init__(self)
+    self.emailAddr = emailAddr
+  def run (self):
+    generateMelOverdue(self.emailAddr)
 
 class reservesThread (Thread):
   def __init__(self, emailAddr):
@@ -160,6 +172,20 @@ def sysLogin():
       resp.set_cookie('loggedIn', 'true')
       return resp
   return render_template('index.html', form=authForm, message="", formName=formName)
+
+@app.route('/meloverdue', methods=['GET', 'POST'])
+def melOverdue():
+  formName = "MEL Overdue Report"
+  loggedIn = request.cookies.get('loggedIn')
+  if loggedIn == None or loggedIn != "true":
+    return redirect("/reports/login", code=302)
+  melOverdueForm = melOverdueReportForm()
+  if melOverdueForm.validate_on_submit():
+    email = melOverdueForm.email.data
+    thread1 = melOverdueThread(email)
+    thread1.start()
+    return render_template('success.html')
+  return render_template('index.html', form=melOverdueForm, message="", formName=formName)
 
 @app.route('/temploanitem', methods=['GET', 'POST'])
 def temporaryLoanItem():

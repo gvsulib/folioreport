@@ -6,6 +6,7 @@ from config import okapiURL
 from config import tenant
 from config import emailFrom
 from config import techSupportEmail
+from datetime import date
 import collections
 import re
 from requests.adapters import HTTPAdapter, Retry
@@ -25,6 +26,8 @@ locationsPath = "/locations"
 session = requests.Session()
 retries = Retry(total=5, backoff_factor=0.1)
 session.mount('https://', HTTPAdapter(max_retries=retries))
+
+# helper functions
 
 def cleanLocationList(locationList):
   cleanList = []
@@ -118,6 +121,38 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
   list = [*itemList.values()]
 
   return list
+
+# report Generation Functions
+def generateMelOverdue(email):
+  reportType = "MEL Overdues"
+  params = None
+  handleError.setParams(params)
+  handleError.setReportType(reportType)
+  handleError.setUserEmail(email)
+
+  today = date.today()
+  query = "&query=status.name==Open and (loanPolicyId==a05d8c4d-1549-4dda-aa33-9c7523b2863e or loanPolicyId==fd9c1d90-8bce-415a-98b8-0d18c10bce7e ) and dueDate < " + today.strftime('%Y-%m-%d')
+  result = getAllFromEndPoint("/circulation/loans", query, "loans", session, email)
+
+  if len(result) < 1:
+    msg = "No MEL overdue loans found"
+    handleError.handleErrorAndQuitNoTechEmail(msg)
+
+  reportData = "Title, Barcode, dueDate\n"
+
+  for entry in result:
+    line = []
+    index = entry["dueDate"].find("T")
+    dueDate = entry["dueDate"][0:index]
+    item = entry["item"]
+    title = item["title"]
+    barcode = item["barcode"]
+    line.append("\"" + title + "\"")
+    line.append(barcode)
+    line.append(dueDate)
+    reportData = reportData + ",".join(line) + "\n"
+
+  sendEmail.sendEmailWithAttachment(email, emailFrom, "MEL Overdue Report", reportData)
 
 def generateReservesUse(email):
   reportType = "Reserves Use"
