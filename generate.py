@@ -138,7 +138,7 @@ def generateMelOverdue(email):
     msg = "No MEL overdue loans found"
     handleError.handleErrorAndQuitNoTechEmail(msg)
 
-  reportData = "Title, Barcode, dueDate\n"
+  reportData = "Title, Barcode, dueDate, callNumber\n"
 
   for entry in result:
     line = []
@@ -147,9 +147,11 @@ def generateMelOverdue(email):
     item = entry["item"]
     title = item["title"]
     barcode = item["barcode"]
+    callNumber = item["callNumber"]
     line.append("\"" + title + "\"")
     line.append(barcode)
     line.append(dueDate)
+    line.append(callNumber)
     reportData = reportData + ",".join(line) + "\n"
 
   sendEmail.sendEmailWithAttachment(email, emailFrom, "MEL Overdue Report", reportData)
