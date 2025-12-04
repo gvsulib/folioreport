@@ -189,7 +189,7 @@ def generateReservesUse(email):
       })
 
   result = getAllFromEndPoint("/locations", "", "locations", session, email)
-
+  
   #format location data to list with id number as key
   locations = {}
   for entry in result:
@@ -197,10 +197,10 @@ def generateReservesUse(email):
 
   #get start and end dates from reserves data
   result = getAllFromEndPoint("/coursereserves/reserves", "", "reserves", session, email)
-
   #combine course and item data into single entries
   reserveItems = []
   for entry in result:
+    print(entry)
     location = ""
     if "temporaryLocationId" in entry["copiedItem"]:
       location = entry["copiedItem"]["temporaryLocationId"]
@@ -209,8 +209,10 @@ def generateReservesUse(email):
     barcode = ""
     if "barcode" in entry["copiedItem"]:
       barcode = entry["copiedItem"]["barcode"]
-
-    locationText = locations[location]
+    if location in locations:
+      locationText = locations[location]
+    else:
+      locationText = "\'No valid location found\'"
 
     itemEntry = {
       "id": entry["itemId"],
