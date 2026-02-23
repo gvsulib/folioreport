@@ -363,7 +363,7 @@ def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
 
 def getCheckoutsForItem(barcode, session):
   headers = folioAuthenticate.getNewHeaders()
-  query = "/audit-data/circulation/logs?limit=100&offset=0&query=(action=\"Checked out\" and items=\"" + barcode + "\")"
+  query = "/audit-data/circulation/logs?limit=1000&offset=0&query=(action==(\"Checked out\") and items=\"" + barcode + "\")"
   url = okapiURL + query
   r = session.get(url, headers=headers)
   if r.status_code != 200:
