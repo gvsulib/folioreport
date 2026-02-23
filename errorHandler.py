@@ -20,7 +20,7 @@ class errorHandler:
   def setReportType(self, type):
     self.reportType = type
 
-  def constructHTTPErrorMessage(self, url, response):
+  def constructHTTPErrorMessage(url, response):
     return "Could not get data from endpoint:" +  url + "\n status code: " + str(response.status_code) + "\n Error message:" + response.text
 
   def sendEmail(self, subject, content, emailTo):

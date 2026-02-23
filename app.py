@@ -3,7 +3,6 @@ from flask.helpers import make_response
 from config import secretKey, okapiURL, tenant, externalPass
 import folioAuthenticate
 import requests
-import sys
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField, EmailField
@@ -16,13 +15,14 @@ from generate import generateCheckoutReport
 from generate import generateReservesUse
 from generate import generateInventoryReport
 from generate import generateNoCheckout
+from generate import generateItemStatus
 from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 
 def getLocationData():
   headers = folioAuthenticate.getNewHeaders()
   error = ""
-  locationPath = "/locations?limit=2000&query=cql.allRecords%3D1%20sortby%20name"
+  locationPath = "/locations?limit=2000"
   r = requests.get(okapiURL + locationPath, headers=headers)
   if r.status_code != 200:
     error = "Cannot Get location code data from folio: " + str(r.status_code) + r.text
@@ -68,6 +68,19 @@ class NoCheckoutReportForm(FlaskForm):
   cutoffDate = DateField('Start Date:', default=d, validators=[InputRequired()], format='%Y-%m-%d')
   submit = SubmitField('Submit')
 
+class itemStatusForm(FlaskForm):
+  options = [
+    ["In process*","In process (includes non-requestable)"], 
+    ["In transit","In transit"],
+    ["Long missing","Long missing"],
+    ["Lost and paid","Lost and paid"],
+    ["Missing","Missing"]
+    ]  
+  email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
+  itemStatus = SelectField('Item Status (choose one):', choices=options, validators=[InputRequired()])
+  modifiedDate = DateField('Date of change to chosen status (on or after):', default=d, validators=[InputRequired()], format='%Y-%m-%d')
+  submit = SubmitField('Submit')
+
 class temporaryLoanItemReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   submit = SubmitField('Submit')
@@ -91,7 +104,7 @@ class InventoryForm(FlaskForm):
 class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
-  location = NoValidationSelectMultipleField('Location:', choices=selectValues)
+  location = NoValidationSelectMultipleField('Location: (do not choose more than four, and if you need an ASRS location, choose ONLY ONE location at a time)', choices=selectValues)
   callNumberStem = TextField('Call Number Stem')
   startDate = DateField('Start Date:', default=d, validators=[InputRequired()], format='%Y-%m-%d')
   endDate = DateField('End Date:', default=datetime.today, validators=[InputRequired()],  format='%Y-%m-%d')
@@ -101,6 +114,15 @@ class UseReportForm(FlaskForm):
 class  ReservesReportForm(FlaskForm):
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   submit = SubmitField('Generate Reserves Usage Report')
+
+class itemStatusThread (Thread):
+  def __init__(self, emailAddr, status, date):
+    Thread.__init__(self)
+    self.emailAddr = emailAddr
+    self.status = status
+    self.date = date
+  def run (self):
+    generateItemStatus(self.emailAddr, self.status, self.date)
 
 class noCheckoutThread (Thread):
   def __init__(self, emailAddr, location, date):
@@ -154,6 +176,24 @@ class myThread (Thread):
       self.callNumberStem = callNumberStem
    def run(self):
       generateCheckoutReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
+
+@app.route('/itemstatus', methods=['GET', 'POST'])
+def itemStatus():
+  formName = "Item Status Report"
+  loggedIn = request.cookies.get('loggedIn')
+  if loggedIn == None or loggedIn != "true":
+    return redirect("/reports/login", code=302)
+  statusForm = itemStatusForm()
+  if statusForm.validate_on_submit():
+    email = statusForm.email.data
+    status = statusForm.itemStatus.data
+    date = statusForm.modifiedDate.data
+    date = date.strftime('%Y-%m-%d')
+    thread1 = itemStatusThread(email, status, date)
+    thread1.start()
+    return render_template('success.html')
+  return render_template('index.html', form=statusForm, message="", formName=formName)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def sysLogin():
@@ -261,18 +301,28 @@ def usereport():
     includeSuppressed = useReportForm.includeSuppressed.data
     callNumberStem = useReportForm.callNumberStem.data
 
+    errorCheck = False
+    errMessage = []
     if endDate < startDate:
-      message = "End date cannot be before start date." 
-      return render_template('index.html', form=useReportForm, message=message)
-    elif callNumberStem == "" and len(location) == 0:
-      message = "You must select one or more locations, input a call number stem, or both"
-      return render_template('index.html', form=useReportForm, message=message, formName=formName)
-    else:
+      errMessage.append("End date cannot be before start date.")
+      errorCheck = True 
+    if callNumberStem == "" and len(location) == 0:
+      errMessage.append("You must select one or more locations, input a call number stem, or both.")
+      errorCheck = True
+    if len(location) > 4:
+      errMessage.append("Do not select more than four locations.  This will cause the report to fail.  If you need more than four, run separate reports.")
+      errorCheck = True
+    
+    if errorCheck == False:
       startDate = startDate.strftime('%Y-%m-%d')
       endDate = endDate.strftime('%Y-%m-%d')
       thread1 = myThread(startDate, endDate, location, email, includeSuppressed, callNumberStem)
       thread1.start()
       return render_template('success.html')
+    else:
+      return render_template('index.html', form=useReportForm, message="\n".join(errMessage), formName=formName)
+
+
   return render_template('index.html', form=useReportForm, message=message, formName=formName)
 
 @app.route('/nocheckoutreport', methods=['GET', 'POST'])

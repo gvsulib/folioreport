@@ -90,6 +90,7 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
 
   fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
   url = okapiURL + path + fullQuery
+
   r = session.get(url, headers=headers)
 
   if r.status_code != 200:
@@ -106,6 +107,7 @@ def getAllFromEndPoint(path, queryString, arrayName, session, email):
   while json:
     offset += 100
     fullQuery = "?limit=" + limit + "&offset=" + str(offset) + queryString
+
     r = session.get(okapiURL + path + fullQuery, headers=headers)
 
     #request new auth token if neccessary
@@ -200,7 +202,7 @@ def generateReservesUse(email):
   #combine course and item data into single entries
   reserveItems = []
   for entry in result:
-    print(entry)
+
     location = ""
     if "temporaryLocationId" in entry["copiedItem"]:
       location = entry["copiedItem"]["temporaryLocationId"]
@@ -359,6 +361,66 @@ def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
   x.append(retentionData)
   return ",".join(x) + "\n"
 
+def getCheckoutsForItem(barcode, session):
+  headers = folioAuthenticate.getNewHeaders()
+  query = "/audit-data/circulation/logs?limit=100&offset=0&query=(action=\"Checked out\" and items=\"" + barcode + "\")"
+  url = okapiURL + query
+  r = session.get(url, headers=headers)
+  if r.status_code != 200:
+    handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
+  json = r.json()
+  return json["totalRecords"]
+  
+
+def generateItemStatus(email, status, date):
+  reportType = "Item Status Report"
+  handleError.setReportType(reportType)
+  handleError.setUserEmail(email)
+  params = {"status":status, "date": date}
+  handleError.setParams(params)
+
+  itemPath = "/inventory/items"
+
+  queryString = "&query=(status.name==\"" + status + "\" and status.date >= \"" + date + "\")"
+
+  itemRecords = getAllFromEndPoint(itemPath, queryString, "items", session, email)
+  results = "id,callNumber,authors,title,location,barcode,FOLIOCheckouts,SierraCheckouts\n"
+  for record in itemRecords:
+    names = ""
+    barcode = ""
+    sierraCheckout = ""
+    callNumber = ""
+    if "callNumber" in record:
+      callNumber = record["callNumber"]
+
+    if "barcode" in record:
+      barcode = record["barcode"]
+    
+    if "contributorNames" in record:
+      for item in record["contributorNames"]:
+        names += " " + item["name"]
+    if "notes" in record:
+      notes = record["notes"]
+      for note in notes:
+        if note["itemNoteTypeId"] == "6d8bb43a-7455-4044-836e-f43740a4c38d":
+          sierraCheckout = note["note"]
+    checkouts = 0
+    if barcode != "":
+      checkouts = getCheckoutsForItem(barcode, session)
+    entry = [
+      record["id"],
+      "\"" + callNumber + "\"",
+      "\"" + names + "\"",
+      "\"" + record["title"] + "\"",
+      "\"" + record["effectiveLocation"]["name"] + "\"",
+      str(barcode),
+      str(checkouts),
+      sierraCheckout
+    ]
+    print(entry)
+    results += ",".join(entry) + "\n"
+  sendEmail.sendEmailWithAttachment(email, emailFrom, "item Status Report", results)
+
 
 def generateInventoryReport(cutoffDate, locationList, email, callNumberStem):
   reportType = "Item Use Report"
@@ -401,8 +463,8 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
   params = {"startDate":startDate, "endDate":endDate, "location List": locationParams,"Call Number Stem": callNumberStem, "include Suppressed Records": str(includeSuppressed)}
   handleError.setParams(params)
 
-  logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20out*%22%29%29%20sortby%20date%2Fsort.descending"
- 
+  logQueryString = "&query=(date >=\"" + startDate + "\" and date <= \"" + endDate + "\" and action=\"Checked out\")"
+  
   checkoutRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", session, email)
 
   checkoutItemIdList = []
@@ -416,7 +478,7 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
 
   del checkoutItemIdList
 
-  logQueryString = "&query=%28%28date%3E%3D%22" + startDate + "T00%3A00%3A00.000%22%20and%20date%3C%3D%22" + endDate + "T23%3A59%3A59.999%22%29%20and%20action%3D%3D%28%22Checked%20in*%22%29%29%20sortby%20date%2Fsort.descending"
+  logQueryString = "&query=(date >=\"" + startDate + "\" and date <= \"" + endDate + "\" and action=\"Checked in\")"
   
   checkinRecords = getAllFromEndPoint(logPath, logQueryString, "logRecords", session, email)
 
