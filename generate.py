@@ -417,7 +417,7 @@ def generateItemStatus(email, status, date):
       str(checkouts),
       sierraCheckout
     ]
-    print(entry)
+
     results += ",".join(entry) + "\n"
   sendEmail.sendEmailWithAttachment(email, emailFrom, "item Status Report", results)
 
