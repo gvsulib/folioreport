@@ -3,49 +3,120 @@
 
 {% block styles %}
 {{ super() }}
-	<style>
-		body { background: #e8f1f9; }
-	</style>
-{% endblock %}
+<style>
+  body { background: #e8f1f9; }
 
+  /* Make full item card clickable */
+  .report-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 14px;
+  }
+
+  .report-card:hover,
+  .report-card:focus {
+    text-decoration: none;
+  }
+
+  .report-card .well {
+    background-color: #f7f9fc;
+    border: 1px solid #d6e0ea;
+    border-radius: 6px;
+    padding: 18px;
+    transition: all 0.18s ease;
+    position: relative;
+  }
+
+  .report-card:hover .well {
+    background-color: #eef4fa;
+    cursor: pointer;
+    transform: translateY(-1px);
+    border-color: #c7d6e6;
+    border-left: 4px solid #4a90e2;
+  }
+
+  .report-card h4 {
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #337ab7; 
+  }
+
+ 
+  /* Description */
+  .report-card p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #5f6b7a;
+    margin-bottom: 0;
+  }
+</style>
+{% endblock %}
 
 {% block title %}
 Choose a Report to Run
 {% endblock %}
 
-
 {% block content %}
-
 <div class="container">
   <div class="row">
-    <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
+    <div class="col-md-10 col-md-offset-1">
 
-      <h1 class="pt-5 pb-2">Choose a report to run</h1>
-      
-      <p class="lead"></p>
-      <P>
-      <a href="/reports/reservereport">Reserve use Report</a>
-      </P>
-      <P>
-        <a href="/reports/usereport">Checkout report</a>
-      </P>
-      <P>
-        <a href="/reports/inventoryreport">Inventory report</a>
-      </P>
-      <P>
-        <a href="/reports/temploanitem">Temporary loan report</a>
-      </P>
-      <P>
-        <a href="/reports/nocheckoutreport">No checkout activity report</a>
-      </P>
-      <P>
-        <a href="/reports/meloverdue">MEL Overdue Report</a>
-      </P>
-      <P>
-        <a href="/reports/itemstatus">Item Status Report</a>
-      </P>
+      <h1 class="page-header">Choose a report to run</h1>
+
+      <a href="/reports/reservereport" class="report-card">
+        <div class="well well-sm">
+          <h4>Reserve Use Report</h4>
+          <p> A report that provides use stats for items on reserves. This must be run before an item is taken off of Course Reserve to get accurate stats.</p>
+        </div>
+      </a>
+
+      <a href="/reports/usereport" class="report-card">
+        <div class="well well-sm">
+          <h4>Checkout Report</h4>
+          <p>The standard checkout report. Provides both FOLIO and Sierra (old system) use data.
+          </p>
+        </div>
+      </a>
+
+      <!-- <a href="/reports/inventoryreport" class="report-card">
+        <div class="well well-sm">
+          <h4>Inventory Report</h4>
+          <p> A report that provides inventory information.</p>
+        </div>
+      </a> -->
+
+      <a href="/reports/temploanitem" class="report-card">
+        <div class="well well-sm">
+          <h4>Temporary Loan Report</h4>
+          <p>Provides a list of items that have a temporary loan type.</p>
+        </div>
+      </a>
+
+      <a href="/reports/nocheckoutreport" class="report-card">
+        <div class="well well-sm">
+          <h4>No Checkout Activity Report</h4>
+          <p>This report is used during a physical inventory project. The project lead MUST note when the inventory project started and that date goes into the date field when the project is complete. The resulting list is a list of items that were not found during inventory.
+          </p>
+        </div>
+      </a>
+
+      <a href="/reports/meloverdue" class="report-card">
+        <div class="well well-sm">
+          <h4>MEL Overdue Report</h4>
+          <p>Provides a usable report for items on MeL loan that are overdue.</p>
+        </div>
+      </a>
+
+      <a href="/reports/itemstatus" class="report-card">
+        <div class="well well-sm">
+          <h4>Item Status Report</h4>
+          <p>Allows users to run reports for items with different statuses, such as in transit, lost and paid, etc.</p>
+        </div>
+      </a>
+
     </div>
   </div>
 </div>
-
 {% endblock %}
