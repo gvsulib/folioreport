@@ -5,7 +5,8 @@ import folioAuthenticate
 import requests
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
-from wtforms.fields import DateField, EmailField
+from wtforms.fields import DateField
+from wtforms import EmailField
 from wtforms import SubmitField, SelectMultipleField, SelectField, PasswordField, BooleanField, StringField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
