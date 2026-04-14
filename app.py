@@ -16,6 +16,7 @@ from generate import generateReservesUse
 from generate import generateInventoryReport
 from generate import generateNoCheckout
 from generate import generateItemStatus
+from generate import getInstanceUUID
 from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 
@@ -176,6 +177,17 @@ class myThread (Thread):
       self.callNumberStem = callNumberStem
    def run(self):
       generateCheckoutReport(self.startDate, self.endDate, self.locationId, self.emailAddr, self.includeSuppressed, self.callNumberStem)
+
+class fetchInstanceThread(Thread):
+    def __init__(self, item, session, email):
+        Thread.__init__(self)
+        self.item = item
+        self.session = session
+        self.email = email
+        self.instanceUUID = ""
+
+    def run(self):
+        self.instanceUUID = getInstanceUUID(self.item, self.session, self.email)
 
 @app.route('/itemstatus', methods=['GET', 'POST'])
 def itemStatus():
