@@ -5,8 +5,8 @@ import folioAuthenticate
 import requests
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
-from wtforms.fields.html5 import DateField, EmailField
-from wtforms import SubmitField, SelectMultipleField, SelectField, PasswordField, BooleanField, TextField
+from wtforms.fields import DateField, EmailField
+from wtforms import SubmitField, SelectMultipleField, SelectField, PasswordField, BooleanField, StringField
 from wtforms.validators import InputRequired, Email
 from threading import Thread
 from generate import generateMelOverdue
@@ -98,7 +98,7 @@ class InventoryForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   location = NoValidationSelectMultipleField('Location:', choices=selectValues, validators=[InputRequired()])
-  callNumberStem = TextField('Call Number Stem')
+  callNumberStem = StringField('Call Number Stem')
   cutoffDate = DateField('Cut Off Date:', validators=[InputRequired()], format='%Y-%m-%d')
   submit = SubmitField('Submit')
 
@@ -106,7 +106,7 @@ class UseReportForm(FlaskForm):
 
   email = EmailField('Email the report to: ', validators=[InputRequired(), Email()])
   location = NoValidationSelectMultipleField('Location: (do not choose more than four, and if you need an ASRS location, choose ONLY ONE location at a time)', choices=selectValues)
-  callNumberStem = TextField('Call Number Stem')
+  callNumberStem = StringField('Call Number Stem')
   startDate = DateField('Start Date:', default=d, validators=[InputRequired()], format='%Y-%m-%d')
   endDate = DateField('End Date:', default=datetime.today, validators=[InputRequired()],  format='%Y-%m-%d')
   includeSuppressed = BooleanField('Include suppressed records')
