@@ -323,23 +323,12 @@ def generateInventoryEntry(entry):
     x.append("")
   return ",".join(x) + "\n"
 
-def getInstanceUUID(itemRecord, session, email):
-    holdingsId = itemRecord["holdingsRecordId"]
-    headers = folioAuthenticate.getNewHeaders()
-    url = okapiURL + "/holdings-storage/holdings/" + holdingsId
-    r = session.get(url, headers=headers)
-    if r.status_code != 200:
-        handleError.handleErrorAndQuit(errorHandler.constructHTTPErrorMessage(url, r))
-    holdingsRecord = r.json()
-    instanceId = holdingsRecord.get("instanceId", "")
-    return instanceId
 
 def generateCheckoutEntry(entry, checkoutCount, inhouseUseCount, retentionData):
   totalCheckout = "0"
 
   x = []
-  instanceUUID = getInstanceUUID(entry, session, email)
-  x.append(instanceUUID)
+
   x.append(entry["id"])
   x.append('"' + entry["effectiveLocation"]["name"] + '"')
   if "callNumber" in entry:
@@ -514,7 +503,7 @@ def generateCheckoutReport(startDate, endDate, locationList, email, includeSuppr
   limitItem = "100"
   itemResults = getItemRecords(email, offset, okapiURL, itemPath, limitItem, locationList, callNumberStem, False, None, session)
 
-  itemData = "Instance UUID, Item id, Location, Call Number, Volume, Title, Barcode, Material Type, Created Date (Item), folio Checkouts, Sierra Checkouts 2011 to 2021, in-house use, Retention Policy\n"
+  itemData = "Item id, Location, Call Number, Volume, Title, Barcode, Material Type, Created Date (Item), folio Checkouts, Sierra Checkouts 2011 to 2021, in-house use, Retention Policy\n"
   itemIds = []
 
   while itemResults:
